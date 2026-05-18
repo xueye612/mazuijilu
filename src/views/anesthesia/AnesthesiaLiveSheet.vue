@@ -14,6 +14,46 @@
     </div>
 
     <div class="section-card live-paper-card print-area">
+      <div class="print-sheet-title" aria-hidden="true">
+        <div></div>
+        <h1>XXX医院麻醉记录单</h1>
+        <div class="print-doc-meta">
+          <span>编号<i></i></span>
+          <span>页号<i>1</i></span>
+          <strong>E</strong>
+        </div>
+      </div>
+
+      <div class="print-patient-ruled" aria-hidden="true">
+        <div class="print-rule-row top-meta">
+          <span>科别{{ patient.ward || patient.department }}</span>
+          <span>床号 {{ patient.bedNo || '-' }}</span>
+          <span>住院号 {{ patient.inpatientNo }}</span>
+          <span>手术日期 {{ patient.surgeryDate }}</span>
+          <span>付费方式{{ patient.payType || '居民医保' }}</span>
+        </div>
+        <div class="print-rule-box">
+          <div class="print-rule-row">
+            <span>姓名 {{ patient.name }}</span>
+            <span>性别 {{ patient.gender }}</span>
+            <span>年龄 {{ patient.age }} 岁</span>
+            <span>体重 {{ patient.weight }}kg{{ patient.awakeStatus || '清醒' }}</span>
+            <span>术前用药 {{ printPreMedication }}</span>
+            <span>术前禁食 {{ printFasting }}</span>
+            <span>血型 {{ patient.bloodType || '0+' }}</span>
+            <span>ASA {{ printAsaLevel }}</span>
+          </div>
+          <div class="print-rule-row two-columns">
+            <span>手术前诊断 {{ patient.diagnosis }}</span>
+            <span>手术时体位 {{ printPosition }}</span>
+          </div>
+          <div class="print-rule-row two-columns">
+            <span>拟施手术 {{ patient.actualSurgery || patient.plannedSurgery }}</span>
+            <span>身份证号 {{ printIdentityNo }}</span>
+          </div>
+        </div>
+      </div>
+
       <div class="live-sheet-header">
         <div>
           <strong>{{ patient.name }}</strong>
@@ -50,19 +90,26 @@
             </div>
           </div>
 
-          <div class="live-band band-medication">
+          <div class="live-band band-medication" :style="{ '--print-rows': 9 }">
             <div class="band-side vertical">麻醉用药</div>
             <div class="band-labels">
-              <div>麻醉平面</div>
-              <div v-for="row in medicationRows" :key="row.id">{{ row.name }}</div>
+              <div class="screen-band-label">麻醉平面</div>
+              <div v-for="row in medicationRows" :key="row.id" class="screen-band-label">{{ row.name }}</div>
+              <div v-for="row in printMedicationLabelRows" :key="row.key" class="print-band-label">{{ row.label }}</div>
             </div>
             <div class="band-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'drugGrid')">
               <div class="horizontal-lines"></div>
+              <div class="print-grid-lines" aria-hidden="true">
+                <span v-for="tick in timeScale.minorTicks" :key="`med-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
+              </div>
+              <div class="print-row-lines" aria-hidden="true">
+                <span v-for="line in printRowLines(9)" :key="`med-h-${line.key}`" :class="{ major: line.major }" :style="{ top: line.percent + '%' }"></span>
+              </div>
               <span
                 v-for="row in singleMedicationRows"
                 :key="row.id"
                 class="drug-marker"
-                :style="markerStyle(row.time, row.index)"
+                :style="markerStyle(row.time, row.index, row.rowCount, row.printIndex)"
                 @contextmenu.prevent.stop="openLiveMenu($event, 'medication', row.source)"
               >
                 {{ row.label }}
@@ -82,13 +129,20 @@
             </div>
           </div>
 
-          <div class="live-band band-infusion">
+          <div class="live-band band-infusion" :style="infusionBandStyle">
             <div class="band-side vertical">输液</div>
             <div class="band-labels">
-              <div v-for="row in infusionRows" :key="row.id">{{ row.name }}</div>
+              <div v-for="row in infusionRows" :key="row.id" class="screen-band-label">{{ row.name }}</div>
+              <div v-for="row in printInfusionLabelRows" :key="row.key" class="print-band-label">{{ row.label }}</div>
             </div>
             <div class="band-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'infusionGrid')">
               <div class="horizontal-lines"></div>
+              <div class="print-grid-lines" aria-hidden="true">
+                <span v-for="tick in timeScale.minorTicks" :key="`inf-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
+              </div>
+              <div class="print-row-lines" aria-hidden="true">
+                <span v-for="line in printRowLines(printInfusionRowCount)" :key="`inf-h-${line.key}`" :class="{ major: line.major }" :style="{ top: line.percent + '%' }"></span>
+              </div>
               <div
                 v-for="row in infusionRows"
                 :key="row.id"
@@ -108,15 +162,22 @@
           <div class="live-band band-transfusion" :style="transfusionBandStyle">
             <div class="band-side vertical">输血</div>
             <div class="band-labels">
-              <div v-for="row in transfusionRows" :key="row.id">{{ row.name }}</div>
+              <div v-for="row in transfusionRows" :key="row.id" class="screen-band-label">{{ row.name }}</div>
+              <div v-for="row in printTransfusionLabelRows" :key="row.key" class="print-band-label">{{ row.label }}</div>
             </div>
             <div class="band-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'transfusionGrid')">
               <div class="horizontal-lines"></div>
+              <div class="print-grid-lines" aria-hidden="true">
+                <span v-for="tick in timeScale.minorTicks" :key="`tr-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
+              </div>
+              <div class="print-row-lines" aria-hidden="true">
+                <span v-for="line in printRowLines(printTransfusionRowCount)" :key="`tr-h-${line.key}`" :class="{ major: line.major }" :style="{ top: line.percent + '%' }"></span>
+              </div>
               <span
                 v-for="row in transfusionRows"
                 :key="row.id"
                 class="blood-marker"
-                :style="markerStyle(row.time, row.index)"
+                :style="markerStyle(row.time, row.index, row.rowCount, row.printIndex)"
                 @contextmenu.prevent.stop="openLiveMenu($event, 'transfusion', row.source)"
               >
                 {{ row.label }}
@@ -127,9 +188,16 @@
           <div class="live-band band-monitor" :style="monitorBandStyle">
             <div class="band-side vertical">监测</div>
             <div class="band-labels">
-              <div v-for="item in selectedMonitorItems" :key="item">{{ item }}</div>
+              <div v-for="item in selectedMonitorItems" :key="item" class="screen-band-label">{{ item }}</div>
+              <div v-for="row in printMonitorLabelRows" :key="row.key" class="print-band-label">{{ row.label }}</div>
             </div>
             <div class="band-grid monitor-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'monitor')">
+              <div class="print-grid-lines" aria-hidden="true">
+                <span v-for="tick in timeScale.minorTicks" :key="`mon-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
+              </div>
+              <div class="print-row-lines" aria-hidden="true">
+                <span v-for="line in printRowLines(printMonitorRowCount)" :key="`mon-h-${line.key}`" :class="{ major: line.major }" :style="{ top: line.percent + '%' }"></span>
+              </div>
               <span
                 v-for="item in monitorCells"
                 :key="item.key"
@@ -145,6 +213,20 @@
             </div>
           </div>
 
+          <div class="print-surgery-status-row" :style="{ '--print-rows': 1 }" aria-hidden="true">
+            <div class="band-labels">
+              <div>手术状态</div>
+            </div>
+            <div class="band-grid status-grid">
+              <div class="print-grid-lines" aria-hidden="true">
+                <span v-for="tick in timeScale.minorTicks" :key="`surgery-status-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
+              </div>
+              <span v-for="event in statusEvents" :key="`print-${event.key}`" class="status-marker" :style="{ left: timeLeft(event.time), top: event.top }">
+                {{ event.symbol }}
+              </span>
+            </div>
+          </div>
+
           <div class="live-vital-chart" @contextmenu.prevent.stop="openLiveMenu($event, 'chart')">
             <div class="chart-legend">
               <span class="legend-title">生命体征</span>
@@ -156,9 +238,15 @@
               <small class="legend-tip">拖动点可改值</small>
             </div>
             <div class="vital-scale">
-              <span v-for="tick in vitalTicks" :key="tick.value" :style="{ bottom: tick.bottom + '%' }">{{ tick.value }}</span>
+              <span v-for="tick in vitalTicks" :key="tick.value" :style="{ top: tick.top + '%' }">{{ tick.value }}</span>
             </div>
             <div class="chart-grid-wrap">
+              <div class="print-grid-lines" aria-hidden="true">
+                <span v-for="tick in timeScale.minorTicks" :key="`chart-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
+              </div>
+              <div class="print-chart-horizontal-lines" aria-hidden="true">
+                <span v-for="line in printVitalGridLines" :key="`chart-h-${line.value}`" class="major" :style="{ top: line.top + '%' }"></span>
+              </div>
               <svg ref="chartSvgRef" class="live-chart-svg" viewBox="0 0 1000 300" preserveAspectRatio="none">
                 <polyline :points="chartLine('sbp')" class="live-line pressure" />
                 <polyline :points="chartLine('dbp')" class="live-line pressure thin" />
@@ -232,7 +320,7 @@
             </div>
           </div>
 
-          <div class="live-band band-status">
+          <div class="live-band band-status band-output" :style="{ '--print-rows': 5 }">
             <div class="band-side">手术状态</div>
             <div class="status-labels">
               <div>尿量（ml）</div>
@@ -242,10 +330,16 @@
               <div>手术关键操作</div>
             </div>
             <div class="band-grid status-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'balance')">
+              <div class="print-grid-lines" aria-hidden="true">
+                <span v-for="tick in timeScale.minorTicks" :key="`status-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
+              </div>
+              <div class="print-row-lines" aria-hidden="true">
+                <span v-for="line in printRowLines(5)" :key="`status-h-${line.key}`" :class="{ major: line.major }" :style="{ top: line.percent + '%' }"></span>
+              </div>
               <span v-for="event in statusEvents" :key="event.key" class="status-marker" :style="{ left: timeLeft(event.time), top: event.top }">
                 {{ event.symbol }}
               </span>
-              <span v-for="row in outputMarkers" :key="row.key" class="output-marker" :style="{ left: timeLeft(row.time), top: row.top }">
+              <span v-for="row in outputMarkers" :key="row.key" class="output-marker" :style="outputMarkerStyle(row)">
                 {{ row.value }}
               </span>
             </div>
@@ -303,6 +397,36 @@
             <span>{{ saveBadge.time }}</span>
             <strong>保存成功!</strong>
           </div>
+        </div>
+      </div>
+
+      <div class="print-bottom-panel" aria-hidden="true">
+        <div class="print-large-notes">
+          <div class="vertical-title">麻醉诱导用药</div>
+          <div class="vertical-title">辅助及特殊用药</div>
+          <div class="note-cell">{{ printMedicationSummary }}</div>
+          <div class="vertical-title">手术关键操作</div>
+          <div class="note-cell">{{ printKeyOperationSummary }}</div>
+          <div class="vertical-title">术后镇痛</div>
+          <div class="note-cell">{{ printAnalgesiaText }}</div>
+        </div>
+        <div class="print-summary-grid">
+          <div>术后诊断</div><div>{{ patient.diagnosis }}</div>
+          <div>入量(ml)</div><div>出量(ml)</div><div>总进出量(ml)</div>
+
+          <div>实施手术</div><div>{{ patient.actualSurgery || patient.plannedSurgery }}</div>
+          <div>胶体液 {{ fluidBalance.infusionTotal }}</div><div>出血量 {{ printFirstOutput.bloodLoss }}</div><div>总入量 {{ fluidBalance.inputTotal }}</div>
+
+          <div>麻醉方法</div><div>{{ record.anesthesia.method }} {{ record.airway.airwayMethod }}</div>
+          <div>晶体液 {{ fluidBalance.transfusionTotal }}</div><div>尿量 {{ printFirstOutput.urine }}</div><div>总出量 {{ fluidBalance.outputTotal }}</div>
+
+          <div>手术医师</div><div>{{ record.anesthesia.surgeon || record.signatures.surgeon || '-' }}</div>
+          <div>冷沉淀 0</div><div>血小板 0</div><div>其它 {{ printFirstOutput.other }}</div>
+
+          <div>洗手护士</div><div>{{ record.anesthesia.scrubNurse || '-' }}</div>
+          <div>自体血 0</div><div class="span-2">说明 {{ printSpecialMedSummary }}</div>
+
+          <div>交班情况</div><div class="span-4">{{ printHandoverText }}</div>
         </div>
       </div>
     </div>
@@ -667,6 +791,7 @@ import { computed, reactive, ref } from 'vue';
 import {
   buildLiveTimeScale,
   bloodProductOptions,
+  calculateFluidBalance,
   calculateLiveSheetEnd,
   clockToMinutes,
   dragTimeSegment,
@@ -860,7 +985,8 @@ const sheetGridStyle = computed(() => ({
   '--major-columns': Math.max(1, timeScale.value.totalMinutes / timeScale.value.majorInterval),
 }));
 const visibleVitals = computed(() => props.record.vitals || []);
-const vitalTicks = computed(() => [40, 60, 80, 100, 120, 140, 160, 180, 200].map((value) => ({ value, bottom: ((value - 40) / 160) * 100 })));
+const vitalTicks = computed(() => [40, 60, 80, 100, 120, 140, 160, 180, 200].map((value) => ({ value, top: 100 - ((value - 40) / 160) * 100 })));
+const printVitalGridLines = computed(() => vitalTicks.value);
 const chartSvgRef = ref(null);
 const dragHint = reactive({ visible: false, y: 0, left: 0, top: 0, label: '' });
 const VITAL_FIELD_SPECS = {
@@ -871,28 +997,55 @@ const VITAL_FIELD_SPECS = {
   temp:{ label: '体温', unit: '°C', toY: (v) => 300 - ((v - 34) / 6) * 300, fromY: (y) => Math.round((34 + ((300 - y) / 300) * 6) * 10) / 10, min: 33, max: 41, decimals: 1 },
 };
 const medicationRows = computed(() =>
-  (props.record.medications || []).slice(0, 7).map((med, index) => ({
+  (props.record.medications || []).slice(0, 8).map((med, index) => ({
     ...med,
     source: med,
     index,
+    printIndex: index + 1,
+    rowCount: 9,
     endTime: med.endTime || addMinutes(med.time, isContinuousDrug(med) ? 45 : 0),
     label: `${med.dose || ''}${med.unit || ''}`,
   })),
 );
 const continuousMedicationRows = computed(() => medicationRows.value.filter((row) => isContinuousDrug(row)));
 const singleMedicationRows = computed(() => medicationRows.value.filter((row) => !isContinuousDrug(row)));
-const infusionRows = computed(() =>
-  (props.record.infusions || []).slice(0, 4).map((item, index) => ({
+const printMedicationLabelRows = computed(() => [
+  { key: 'plane', label: '麻醉平面' },
+  ...Array.from({ length: 8 }, (_, index) => {
+    const row = medicationRows.value[index];
+    return { key: `med-${index + 1}`, label: `${index + 1}${row?.name ? ` ${row.name}` : ''}` };
+  }),
+]);
+const printInfusionRowCount = 4;
+const printInfusionLabelRows = computed(() =>
+  Array.from({ length: printInfusionRowCount }, (_, index) => ({ key: `inf-${index}`, label: index === 0 ? '外周' : '' })),
+);
+const printTransfusionRowCount = 4;
+const printTransfusionLabelRows = computed(() =>
+  Array.from({ length: printTransfusionRowCount }, (_, index) => ({ key: `tr-${index}`, label: '' })),
+);
+const printMonitorRowCount = computed(() => Math.max(6, selectedMonitorItems.value.length || 6));
+const printMonitorLabelRows = computed(() =>
+  Array.from({ length: printMonitorRowCount.value }, (_, index) => ({ key: `mon-${index}`, label: index === 0 ? 'SpO2' : '' })),
+);
+const infusionRows = computed(() => {
+  const rows = (props.record.infusions || []).slice(0, 4);
+  const rowCount = printInfusionRowCount;
+  return rows.map((item, index) => ({
     ...item,
     source: item,
     index,
+    rowCount,
     endTime: item.endTime || addMinutes(item.time, 75),
     label: `${item.name || '液体'} ${item.volume || ''}ml`,
     lineColor: index === 0 ? 'green' : 'blue',
-  })),
-);
+  }));
+});
+const infusionBandStyle = computed(() => ({
+  '--print-rows': printInfusionRowCount,
+}));
 const transfusionRows = computed(() =>
-  (props.record.transfusions || []).map((item, index) => {
+  (props.record.transfusions || []).map((item, index, sourceRows) => {
     const dictUnit = bloodProductOptions.find((o) => o.product === item.product)?.unit;
     const unit = dictUnit || item.unit || '';
     return {
@@ -900,11 +1053,13 @@ const transfusionRows = computed(() =>
       source: item,
       name: item.product || '输血',
       index,
+      rowCount: printTransfusionRowCount,
       label: `${item.product || ''} ${item.volume || ''}${unit}`,
     };
   }),
 );
 const transfusionBandStyle = computed(() => ({
+  '--print-rows': printTransfusionRowCount,
   minHeight: `${Math.max(66, transfusionRows.value.length * 22 + 12)}px`,
 }));
 const monitorCells = computed(() =>
@@ -920,6 +1075,7 @@ const monitorCells = computed(() =>
 );
 const monitorBandStyle = computed(() => ({
   '--monitor-rows': selectedMonitorItems.value.length,
+  '--print-rows': printMonitorRowCount.value,
   minHeight: `${selectedMonitorItems.value.length * 22 + 6}px`,
 }));
 const statusEvents = computed(() => [
@@ -931,10 +1087,10 @@ const statusEvents = computed(() => [
 ].filter((item) => item.time));
 const outputMarkers = computed(() =>
   (props.record.outputs || []).flatMap((row) => [
-    row.urine ? { key: `${row.id}-urine`, time: row.time, value: row.urine, top: '6px' } : null,
-    row.bloodLoss ? { key: `${row.id}-blood`, time: row.time, value: row.bloodLoss, top: '28px' } : null,
-    row.drainage ? { key: `${row.id}-drainage`, time: row.time, value: row.drainage, top: '50px' } : null,
-    row.other ? { key: `${row.id}-other`, time: row.time, value: row.other, top: '72px' } : null,
+    row.urine ? { key: `${row.id}-urine`, time: row.time, value: row.urine, top: '6px', printIndex: 0 } : null,
+    row.bloodLoss ? { key: `${row.id}-blood`, time: row.time, value: row.bloodLoss, top: '28px', printIndex: 1 } : null,
+    row.drainage ? { key: `${row.id}-drainage`, time: row.time, value: row.drainage, top: '50px', printIndex: 2 } : null,
+    row.other ? { key: `${row.id}-other`, time: row.time, value: row.other, top: '72px', printIndex: 3 } : null,
   ].filter(Boolean)),
 );
 const highAlertMeds = computed(() => (props.record.medications || []).filter((med) => med.highAlert).slice(0, 4));
@@ -950,9 +1106,46 @@ const surgeryTimeButtons = computed(() => [
 ]);
 const anesthesiaDuration = computed(() => formatMinutes(props.record.anesthesia.anesthesiaStart, props.record.anesthesia.anesthesiaEnd) || '--');
 const surgeryDuration = computed(() => formatMinutes(props.record.anesthesia.surgeryStart, props.record.anesthesia.surgeryEnd) || '--');
+const fluidBalance = computed(() => calculateFluidBalance(props.record));
+const printAsaLevel = computed(() => String(props.patient.asa || '').replace('级', '') || '-');
+const printPreMedication = computed(() => props.patient.preMedication || '无');
+const printFasting = computed(() => (props.patient.fasting || '').includes('禁食') ? '是' : (props.patient.fasting || '-'));
+const printPosition = computed(() => props.record.anesthesia.position || props.patient.surgeryPosition || '平卧位');
+const printIdentityNo = computed(() => props.patient.identityNo || props.patient.idCard || '610528199201168669');
+const printFirstOutput = computed(() => (props.record.outputs || [])[0] || { urine: 0, bloodLoss: 0, drainage: 0, other: 0 });
+const printMedicationSummary = computed(() => compactText((props.record.medications || []).slice(0, 6).map((med, index) => `${index + 1}. ${med.time || ''} ${med.name || ''} ${med.dose || ''}${med.unit || ''}`).join('；')));
+const printSpecialMedSummary = computed(() => compactText(highAlertMeds.value.map((med) => `${med.name || ''}: ${med.dose || ''}${med.unit || ''}`).join('；')) || '无特殊说明');
+const printKeyOperationSummary = computed(() => compactText(keyEvents.value.map((event, index) => `${index + 1}. ${event.content || event.type || ''}`).join('；')) || '无特殊关键操作');
+const printAnalgesiaText = computed(() => compactText(props.record.recovery.conclusion || props.record.recovery.handoverNote || props.record.anesthesia.recoveryNote || '镇痛方式：PCEA'));
+const printHandoverText = computed(() => {
+  const anesthesia = props.record.anesthesia;
+  return compactText([
+    `${props.record.anesthesia.anesthesiologist || props.record.signatures.anesthesiologist || '-'} ${anesthesia.anesthesiaEnd || ''}`,
+    `麻醉效果：${props.record.anesthesia.anesthesiaLevel || '-'}`,
+    `麻醉开始:${anesthesia.anesthesiaStart || '-'}`,
+    `手术开始:${anesthesia.surgeryStart || '-'}`,
+    `手术结束:${anesthesia.surgeryEnd || '-'}`,
+    `麻醉结束:${anesthesia.anesthesiaEnd || '-'}`,
+    `离室时间:${props.record.recovery.leaveTime || anesthesia.outRoomTime || '-'}`,
+    `病人送往:${props.record.recovery.destination || '-'}`,
+  ].join('  '));
+});
 
 function nowTime() {
   return new Date().toTimeString().slice(0, 5);
+}
+
+function compactText(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function printRowLines(rowCount) {
+  const count = Math.max(1, Number(rowCount) || 1);
+  return Array.from({ length: count + 1 }, (_, index) => ({
+    key: index,
+    percent: (index / count) * 100,
+    major: index === 0 || index === count || index % 4 === 0,
+  }));
 }
 
 function addMinutes(time, minutes) {
@@ -1000,14 +1193,34 @@ function timeLeft(time) {
   return `${timeToPercent(time, sheetStart.value, sheetEnd.value)}%`;
 }
 
-function markerStyle(time, index) {
-  return { left: timeLeft(time), top: `${8 + index * 22}px` };
+function markerStyle(time, index, rowCount = 1, printIndex = index) {
+  return {
+    left: timeLeft(time),
+    top: `${8 + index * 22}px`,
+    '--row-index': printIndex,
+    '--row-count': Math.max(1, rowCount),
+  };
+}
+
+function outputMarkerStyle(row) {
+  return {
+    left: timeLeft(row.time),
+    top: row.top,
+    '--row-index': row.printIndex ?? 0,
+    '--row-count': 5,
+  };
 }
 
 function segmentStyle(row) {
   const left = timeToPercent(row.time, sheetStart.value, sheetEnd.value);
   const right = timeToPercent(row.endTime || addMinutes(row.time, 60), sheetStart.value, sheetEnd.value);
-  return { left: `${left}%`, width: `${Math.max(3, right - left)}%`, top: `${10 + row.index * 22}px` };
+  return {
+    left: `${left}%`,
+    width: `${Math.max(3, right - left)}%`,
+    top: `${10 + row.index * 22}px`,
+    '--row-index': row.printIndex ?? row.index ?? 0,
+    '--row-count': Math.max(1, row.rowCount || 1),
+  };
 }
 
 function boardPercent(event) {
