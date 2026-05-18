@@ -247,7 +247,7 @@ const rescueRecord = () => {
     { id: 'i-005-2', time: '10:18', name: '复方电解质', spec: '500ml', volume: 500, executor: '吴护士' },
   ];
   record.transfusions = [
-    { id: 't-005-1', time: '10:22', product: '悬浮红细胞', bagNo: 'B20260517018', bloodType: 'A+', volume: 200, doubleCheck: true, reaction: '无' },
+    { id: 't-005-1', time: '10:22', endTime: '11:22', product: '悬浮红细胞', bagNo: 'B20260517018', bloodType: 'A+', volume: 2, unit: 'U', anesthesiaConfirm: true, circulatingConfirm: true, doubleCheck: true, reaction: '无' },
   ];
   record.outputs = [
     { id: 'o-005-1', time: '10:25', urine: 60, bloodLoss: 280, drainage: 30, other: 0, remark: '胸腔引流' },
@@ -300,7 +300,7 @@ const signedRecord = () => {
   ];
   record.medications = [
     { id: 'm-004-1', time: '09:10', name: '丙泊酚', dose: 80, unit: 'mg', route: '静脉', reason: '麻醉诱导', executor: '王医生', checker: '黄护士', highAlert: false, remark: '' },
-    { id: 'm-004-2', time: '09:12', name: '瑞芬太尼', dose: 0.1, unit: 'ug/kg/min', route: '泵入', reason: '镇痛维持', executor: '王医生', checker: '黄护士', highAlert: true, remark: '' },
+    { id: 'm-004-2', time: '09:12', name: '瑞芬太尼', dose: 0.1, unit: 'ug/kg·min', route: '泵入', reason: '镇痛维持', executor: '王医生', checker: '黄护士', highAlert: true, remark: '' },
   ];
   record.infusions = [{ id: 'i-004-1', time: '09:05', name: '乳酸钠林格液', spec: '500ml', volume: 300, executor: '黄护士' }];
   record.outputs = [{ id: 'o-004-1', time: '09:58', urine: 0, bloodLoss: 10, drainage: 0, other: 0, remark: '宫腔镜手术' }];

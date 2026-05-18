@@ -156,11 +156,21 @@
               <label>手术日期<input v-model="currentPatient.surgeryDate" type="date" :disabled="isReadOnly" /></label>
               <label>手术间<input v-model="currentPatient.room" :disabled="isReadOnly" /></label>
               <label>ASA 分级
-                <select v-model="currentPatient.asa" :disabled="isReadOnly">
+                <select
+                  v-model="currentPatient.asa"
+                  :disabled="isReadOnly"
+                  @focus="auditFocus(`patient.asa`, currentPatient.asa)"
+                  @change="auditChange(`patient.asa`, `患者·ASA 分级`, currentPatient.asa)"
+                >
                   <option v-for="level in dictionaries.asaLevels" :key="level">{{ level }}</option>
                 </select>
               </label>
-              <label>过敏史<input v-model="currentPatient.allergy" :disabled="isReadOnly" /></label>
+              <label>过敏史<input
+                v-model="currentPatient.allergy"
+                :disabled="isReadOnly"
+                @focus="auditFocus(`patient.allergy`, currentPatient.allergy)"
+                @change="auditChange(`patient.allergy`, `患者·过敏史`, currentPatient.allergy)"
+              /></label>
               <label class="wide">诊断<input v-model="currentPatient.diagnosis" :disabled="isReadOnly" /></label>
               <label class="wide">拟行手术<input v-model="currentPatient.plannedSurgery" :disabled="isReadOnly" /></label>
               <label class="wide">实施手术<input v-model="currentPatient.actualSurgery" :disabled="isReadOnly" /></label>
@@ -191,7 +201,12 @@
             </div>
             <div class="form-grid four">
               <label>麻醉方式
-                <select v-model="currentRecord.anesthesia.method" :disabled="isReadOnly">
+                <select
+                  v-model="currentRecord.anesthesia.method"
+                  :disabled="isReadOnly"
+                  @focus="auditFocus(`anesthesia.method`, currentRecord.anesthesia.method)"
+                  @change="auditChange(`anesthesia.method`, `麻醉·麻醉方式`, currentRecord.anesthesia.method)"
+                >
                   <option v-for="method in dictionaries.anesthesiaMethods" :key="method">{{ method }}</option>
                 </select>
               </label>
@@ -212,7 +227,13 @@
               <label v-for="field in timeFields" :key="field.key" :class="{ invalid: timelineIssueFields.includes(field.key) }">
                 <span>{{ field.label }}</span>
                 <div class="time-input">
-                  <input v-model="currentRecord.anesthesia[field.key]" type="time" :disabled="isReadOnly" @change="handleTimeChange(field)" />
+                  <input
+                    v-model="currentRecord.anesthesia[field.key]"
+                    type="time"
+                    :disabled="isReadOnly"
+                    @focus="auditFocus(`anesthesia.${field.key}`, currentRecord.anesthesia[field.key])"
+                    @change="handleTimeChange(field); auditChange(`anesthesia.${field.key}`, `关键时间·${field.label}`, currentRecord.anesthesia[field.key])"
+                  />
                   <button :disabled="isReadOnly" @click="setTimeNow(field)">现在</button>
                 </div>
               </label>
@@ -304,15 +325,15 @@
                 </thead>
                 <tbody>
                   <tr v-for="row in currentRecord.vitals" :key="row.id">
-                    <td><input v-model="row.time" type="time" :disabled="isReadOnly" /></td>
-                    <td :class="{ abnormal: isAbnormal(row, 'sbp') }"><input v-model.number="row.sbp" type="number" :disabled="isReadOnly" /></td>
-                    <td :class="{ abnormal: isAbnormal(row, 'dbp') }"><input v-model.number="row.dbp" type="number" :disabled="isReadOnly" /></td>
-                    <td :class="{ abnormal: isAbnormal(row, 'hr') }"><input v-model.number="row.hr" type="number" :disabled="isReadOnly" /></td>
-                    <td :class="{ abnormal: isAbnormal(row, 'rr') }"><input v-model.number="row.rr" type="number" :disabled="isReadOnly" /></td>
-                    <td :class="{ abnormal: isAbnormal(row, 'spo2') }"><input v-model.number="row.spo2" type="number" :disabled="isReadOnly" /></td>
-                    <td :class="{ abnormal: isAbnormal(row, 'etco2') }"><input v-model.number="row.etco2" type="number" :disabled="isReadOnly" /></td>
-                    <td :class="{ abnormal: isAbnormal(row, 'temp') }"><input v-model.number="row.temp" type="number" step="0.1" :disabled="isReadOnly" /></td>
-                    <td :class="{ abnormal: isAbnormal(row, 'bis') }"><input v-model.number="row.bis" type="number" :disabled="isReadOnly" /></td>
+                    <td><input v-model="row.time" type="time" :disabled="isReadOnly" @focus="auditFocus(`vital.${row.id}.time`, row.time)" @change="auditChange(`vital.${row.id}.time`, `生命体征 时间`, row.time)" /></td>
+                    <td :class="{ abnormal: isAbnormal(row, 'sbp') }"><input v-model.number="row.sbp" type="number" :disabled="isReadOnly" @focus="auditFocus(`vital.${row.id}.sbp`, row.sbp)" @change="auditChange(`vital.${row.id}.sbp`, `生命体征 SBP`, row.sbp, { thresholdField: 'sbp' })" /></td>
+                    <td :class="{ abnormal: isAbnormal(row, 'dbp') }"><input v-model.number="row.dbp" type="number" :disabled="isReadOnly" @focus="auditFocus(`vital.${row.id}.dbp`, row.dbp)" @change="auditChange(`vital.${row.id}.dbp`, `生命体征 DBP`, row.dbp, { thresholdField: 'dbp' })" /></td>
+                    <td :class="{ abnormal: isAbnormal(row, 'hr') }"><input v-model.number="row.hr" type="number" :disabled="isReadOnly" @focus="auditFocus(`vital.${row.id}.hr`, row.hr)" @change="auditChange(`vital.${row.id}.hr`, `生命体征 HR`, row.hr, { thresholdField: 'hr' })" /></td>
+                    <td :class="{ abnormal: isAbnormal(row, 'rr') }"><input v-model.number="row.rr" type="number" :disabled="isReadOnly" @focus="auditFocus(`vital.${row.id}.rr`, row.rr)" @change="auditChange(`vital.${row.id}.rr`, `生命体征 RR`, row.rr, { thresholdField: 'rr' })" /></td>
+                    <td :class="{ abnormal: isAbnormal(row, 'spo2') }"><input v-model.number="row.spo2" type="number" :disabled="isReadOnly" @focus="auditFocus(`vital.${row.id}.spo2`, row.spo2)" @change="auditChange(`vital.${row.id}.spo2`, `生命体征 SpO2`, row.spo2, { thresholdField: 'spo2' })" /></td>
+                    <td :class="{ abnormal: isAbnormal(row, 'etco2') }"><input v-model.number="row.etco2" type="number" :disabled="isReadOnly" @focus="auditFocus(`vital.${row.id}.etco2`, row.etco2)" @change="auditChange(`vital.${row.id}.etco2`, `生命体征 EtCO2`, row.etco2, { thresholdField: 'etco2' })" /></td>
+                    <td :class="{ abnormal: isAbnormal(row, 'temp') }"><input v-model.number="row.temp" type="number" step="0.1" :disabled="isReadOnly" @focus="auditFocus(`vital.${row.id}.temp`, row.temp)" @change="auditChange(`vital.${row.id}.temp`, `生命体征 TEMP`, row.temp, { thresholdField: 'temp' })" /></td>
+                    <td :class="{ abnormal: isAbnormal(row, 'bis') }"><input v-model.number="row.bis" type="number" :disabled="isReadOnly" @focus="auditFocus(`vital.${row.id}.bis`, row.bis)" @change="auditChange(`vital.${row.id}.bis`, `生命体征 BIS`, row.bis, { thresholdField: 'bis' })" /></td>
                     <td>
                       <select v-model="row.source" :disabled="isReadOnly">
                         <option>手工录入</option>
@@ -396,6 +417,8 @@
               @copy="copyMedication"
               @remove="removeMedication"
               @event="generateMedicationEvent"
+              @field-focus="onMedicationFieldFocus"
+              @field-change="onMedicationFieldChange"
             />
           </div>
 
@@ -570,8 +593,20 @@
               <label>意识状态<input v-model="currentRecord.recovery.consciousness" :disabled="isReadOnly" /></label>
               <label>呼吸情况<input v-model="currentRecord.recovery.respiration" :disabled="isReadOnly" /></label>
               <label>循环情况<input v-model="currentRecord.recovery.circulation" :disabled="isReadOnly" /></label>
-              <label>疼痛评分<input v-model.number="currentRecord.recovery.painScore" type="number" :disabled="isReadOnly" /></label>
-              <label>Aldrete 评分<input v-model.number="currentRecord.recovery.aldrete" type="number" :disabled="isReadOnly" /></label>
+              <label>疼痛评分<input
+                v-model.number="currentRecord.recovery.painScore"
+                type="number"
+                :disabled="isReadOnly"
+                @focus="auditFocus(`recovery.painScore`, currentRecord.recovery.painScore)"
+                @change="auditChange(`recovery.painScore`, `复苏·疼痛评分`, currentRecord.recovery.painScore, { thresholdField: 'painScore' })"
+              /></label>
+              <label>Aldrete 评分<input
+                v-model.number="currentRecord.recovery.aldrete"
+                type="number"
+                :disabled="isReadOnly"
+                @focus="auditFocus(`recovery.aldrete`, currentRecord.recovery.aldrete)"
+                @change="auditChange(`recovery.aldrete`, `复苏·Aldrete 评分`, currentRecord.recovery.aldrete, { thresholdField: 'aldrete' })"
+              /></label>
               <label>管路情况<input v-model="currentRecord.recovery.tubes" :disabled="isReadOnly" /></label>
               <label>皮肤情况<input v-model="currentRecord.recovery.skin" :disabled="isReadOnly" /></label>
               <label>交接护士<input v-model="currentRecord.recovery.handoverNurse" :disabled="isReadOnly" /></label>
@@ -668,27 +703,46 @@
             <div class="card-title-row">
               <h2>预览归档 <span class="input-badge">自动生成 + 前端占位</span></h2>
               <div class="row-actions">
+                <button class="btn small primary" @click="printPreview">打印当前记录单</button>
                 <button class="btn small" @click="placeholderAction('导出 PDF')">导出 PDF</button>
                 <button class="btn small" @click="placeholderAction('导出 OFD')">导出 OFD</button>
                 <button class="btn small" @click="placeholderAction('归档病案')">归档病案</button>
                 <button class="btn small" @click="placeholderAction('共享调阅')">共享调阅</button>
-                <button class="btn small primary" @click="openJsonPreview">查看结构化 JSON</button>
+                <button class="btn small" @click="openJsonPreview">查看结构化 JSON</button>
               </div>
             </div>
             <div class="paper-preview print-area">
               <div class="paper-header">
                 <h2>麻醉记录单</h2>
-                <span>{{ currentPatient.surgeryDate }} · {{ currentPatient.room }}</span>
+                <span>{{ currentPatient.surgeryDate }} · {{ currentPatient.room }} · 麻醉医师：{{ currentRecord.anesthesia.anesthesiologist || '-' }} · 手术医师：{{ currentRecord.anesthesia.surgeon || '-' }}</span>
               </div>
               <div class="paper-grid">
                 <span>姓名：{{ currentPatient.name }}</span>
                 <span>性别：{{ currentPatient.gender }}</span>
                 <span>年龄：{{ currentPatient.age }}</span>
                 <span>住院号：{{ currentPatient.inpatientNo }}</span>
-                <span>诊断：{{ currentPatient.diagnosis }}</span>
-                <span>手术：{{ currentPatient.actualSurgery }}</span>
+                <span>科室：{{ currentPatient.department }}</span>
+                <span>床号：{{ currentPatient.bedNo }}</span>
+                <span>身高/体重：{{ currentPatient.height }}cm / {{ currentPatient.weight }}kg</span>
+                <span>BMI：{{ patientBMI || '-' }}</span>
+                <span class="span-2">诊断：{{ currentPatient.diagnosis }}</span>
+                <span class="span-2">实施手术：{{ currentPatient.actualSurgery }}</span>
                 <span>麻醉方式：{{ currentRecord.anesthesia.method }}</span>
                 <span>ASA：{{ currentPatient.asa }}</span>
+                <span>过敏史：{{ currentPatient.allergy || '无' }}</span>
+                <span>禁食：{{ currentPatient.fasting || '-' }}</span>
+              </div>
+              <div class="paper-section">
+                <h3>术前情况</h3>
+                <p>术前生命体征：T {{ currentPatient.preVitals.temp }}℃ · P {{ currentPatient.preVitals.pulse }} · R {{ currentPatient.preVitals.respiration }} · BP {{ currentPatient.preVitals.bp }} · SpO2 {{ currentPatient.preVitals.spo2 }}%</p>
+                <p v-if="currentPatient.preSpecial">术前特殊情况：{{ currentPatient.preSpecial }}</p>
+              </div>
+              <div class="paper-section">
+                <h3>关键时间节点</h3>
+                <div class="paper-time-grid">
+                  <span v-for="field in keyTimeSummaryFields" :key="field.key">{{ field.label }}：{{ currentRecord.anesthesia[field.key] || '-' }}</span>
+                </div>
+                <p>麻醉时长：{{ formatDuration(currentRecord.anesthesia.anesthesiaStart, currentRecord.anesthesia.anesthesiaEnd) }}；手术时长：{{ formatDuration(currentRecord.anesthesia.surgeryStart, currentRecord.anesthesia.surgeryEnd) }}</p>
               </div>
               <div class="paper-section">
                 <h3>生命体征趋势</h3>
@@ -699,37 +753,60 @@
                   <polyline :points="seriesPoints('spo2', 80, 100, 170)" class="line spo2" />
                 </svg>
               </div>
+              <div class="paper-section">
+                <h3>用药记录</h3>
+                <table class="paper-table">
+                  <thead><tr><th>时间</th><th>药品</th><th>剂量</th><th>途径</th><th>执行人</th><th>核对人</th><th>高警示</th></tr></thead>
+                  <tbody>
+                    <tr v-for="med in currentRecord.medications" :key="med.id">
+                      <td>{{ med.time }}</td><td>{{ med.name }}</td><td>{{ med.dose }} {{ med.unit }}</td><td>{{ med.route }}</td><td>{{ med.executor }}</td><td>{{ med.checker }}</td><td>{{ med.highAlert ? '是' : '' }}</td>
+                    </tr>
+                    <tr v-if="!currentRecord.medications.length"><td colspan="7" class="muted">无用药记录</td></tr>
+                  </tbody>
+                </table>
+              </div>
               <div class="paper-columns">
                 <div>
-                  <h3>用药记录</h3>
-                  <p v-for="med in currentRecord.medications" :key="med.id">{{ med.time }} {{ med.name }} {{ med.dose }}{{ med.unit }} {{ med.route }}</p>
+                  <h3>输液</h3>
+                  <p v-for="row in currentRecord.infusions" :key="row.id">{{ row.time }} {{ row.name }} {{ row.spec }} {{ row.volume }}ml（{{ row.executor }}）</p>
+                  <p v-if="!currentRecord.infusions.length" class="muted">无</p>
                 </div>
                 <div>
-                  <h3>出入量</h3>
+                  <h3>输血</h3>
+                  <p v-for="row in currentRecord.transfusions" :key="row.id">{{ row.time }} {{ row.product }} {{ row.volume }}{{ row.unit || 'U' }}（{{ row.bloodType }}，{{ row.doubleCheck ? '双人核对' : '未核对' }}）</p>
+                  <p v-if="!currentRecord.transfusions.length" class="muted">无</p>
+                </div>
+                <div>
+                  <h3>出量</h3>
+                  <p v-for="row in currentRecord.outputs" :key="row.id">{{ row.time }} 尿 {{ row.urine }} / 血 {{ row.bloodLoss }} / 引流 {{ row.drainage }} / 其他 {{ row.other }} ml</p>
                   <p>总入量 {{ fluidBalance.inputTotal }} ml；总出量 {{ fluidBalance.outputTotal }} ml；平衡 {{ fluidBalance.fluidBalance }} ml</p>
-                  <p>输血 {{ fluidBalance.transfusionTotal }} ml；出血 {{ fluidBalance.bloodLossTotal }} ml</p>
-                </div>
-                <div>
-                  <h3>气道管理</h3>
-                  <p>{{ currentRecord.airway.airwayMethod }}；插管 {{ currentRecord.airway.intubationTime || '未填' }}；拔管 {{ currentRecord.airway.extubationTime || '未填' }}</p>
-                  <p>{{ currentRecord.airway.airwayNote }}</p>
                 </div>
               </div>
               <div class="paper-section">
+                <h3>气道管理</h3>
+                <p>{{ currentRecord.airway.airwayMethod }}；插管 {{ currentRecord.airway.intubationTime || '-' }}（{{ currentRecord.airway.intubationMethod || '-' }}，型号 {{ currentRecord.airway.tubeModel || '-' }}，深度 {{ currentRecord.airway.tubeDepth || '-' }}cm）；拔管 {{ currentRecord.airway.extubationTime || '-' }}（{{ currentRecord.airway.extubationStatus || '-' }}）</p>
+                <p v-if="currentRecord.airway.airwayNote">{{ currentRecord.airway.airwayNote }}</p>
+              </div>
+              <div class="paper-section">
                 <h3>麻醉事件与抢救记录</h3>
-                <p v-for="event in orderedEvents" :key="event.id">{{ event.time }} {{ event.type }}：{{ event.content }}；处理：{{ event.measure }}</p>
+                <p v-for="event in orderedEvents" :key="event.id">{{ event.time }} 【{{ event.type }}】{{ event.content }}；处理：{{ event.measure || '-' }}</p>
                 <p v-if="currentRecord.rescue.summary">抢救小结：{{ currentRecord.rescue.summary.course }}；结果：{{ currentRecord.rescue.summary.result }}</p>
               </div>
               <div class="paper-columns">
                 <div>
                   <h3>复苏离室</h3>
-                  <p>去向：{{ currentRecord.recovery.destination }}；Aldrete：{{ currentRecord.recovery.aldrete }}；交接：{{ currentRecord.recovery.handoverNurse }} -> {{ currentRecord.recovery.receiver }}</p>
+                  <p>去向：{{ currentRecord.recovery.destination }}；Aldrete：{{ currentRecord.recovery.aldrete }}；疼痛：{{ currentRecord.recovery.painScore }}</p>
+                  <p>离室时间：{{ currentRecord.recovery.leaveTime || '-' }}；PACU：{{ currentRecord.recovery.pacuInTime || '-' }} ~ {{ currentRecord.recovery.pacuOutTime || '-' }}</p>
+                  <p>交接：{{ currentRecord.recovery.handoverNurse }} → {{ currentRecord.recovery.receiver }}</p>
+                  <p v-if="currentRecord.recovery.conclusion">{{ currentRecord.recovery.conclusion }}</p>
                 </div>
                 <div>
                   <h3>签名区</h3>
                   <p>麻醉医师：{{ currentRecord.signatures.anesthesiologist || '未签' }}</p>
+                  <p>手术医师：{{ currentRecord.signatures.surgeon || '未签' }}</p>
                   <p>巡回护士：{{ currentRecord.signatures.nurse || '未签' }}</p>
                   <p>复核人：{{ currentRecord.signatures.reviewer || '未签' }}</p>
+                  <p>签名时间：{{ currentRecord.signatures.signedAt || '-' }}；状态：{{ currentRecord.signatures.status }}</p>
                 </div>
               </div>
             </div>
@@ -895,6 +972,7 @@ import {
   calculateBMI,
   calculateFluidBalance,
   detectAbnormalVitals,
+  evaluateThreshold,
   formatMinutes,
   runQualityRules,
   sortByTime,
@@ -948,8 +1026,12 @@ const DeviceStatusCard = defineComponent({
 
 const EditableMedicationTable = defineComponent({
   props: { rows: Array, readOnly: Boolean },
-  emits: ['copy', 'remove', 'event'],
+  emits: ['copy', 'remove', 'event', 'field-focus', 'field-change'],
   setup(props, { emit }) {
+    const bindAudit = (row, field) => ({
+      onFocus: (e) => emit('field-focus', { rowId: row.id, field, value: e.target.value }),
+      onChange: (e) => emit('field-change', { rowId: row.id, field, value: e.target.value }),
+    });
     return () =>
       h('div', { class: 'table-scroll' }, [
         h('table', { class: 'editable-table' }, [
@@ -958,15 +1040,15 @@ const EditableMedicationTable = defineComponent({
             'tbody',
             props.rows.map((row) =>
               h('tr', { key: row.id, class: row.highAlert ? 'high-alert-row' : '' }, [
-                h('td', [h('input', { type: 'time', value: row.time, disabled: props.readOnly, onInput: (e) => (row.time = e.target.value) })]),
-                h('td', [h('input', { value: row.name, disabled: props.readOnly, onInput: (e) => (row.name = e.target.value) })]),
-                h('td', [h('input', { type: 'number', value: row.dose, disabled: props.readOnly, onInput: (e) => (row.dose = e.target.value) })]),
-                h('td', [h('input', { value: row.unit, disabled: props.readOnly, onInput: (e) => (row.unit = e.target.value) })]),
-                h('td', [h('input', { value: row.route, disabled: props.readOnly, onInput: (e) => (row.route = e.target.value) })]),
+                h('td', [h('input', { type: 'time', value: row.time, disabled: props.readOnly, onInput: (e) => (row.time = e.target.value), ...bindAudit(row, 'time') })]),
+                h('td', [h('input', { value: row.name, disabled: props.readOnly, onInput: (e) => (row.name = e.target.value), ...bindAudit(row, 'name') })]),
+                h('td', [h('input', { type: 'number', value: row.dose, disabled: props.readOnly, onInput: (e) => (row.dose = e.target.value), ...bindAudit(row, 'dose') })]),
+                h('td', [h('input', { value: row.unit, disabled: props.readOnly, onInput: (e) => (row.unit = e.target.value), ...bindAudit(row, 'unit') })]),
+                h('td', [h('input', { value: row.route, disabled: props.readOnly, onInput: (e) => (row.route = e.target.value), ...bindAudit(row, 'route') })]),
                 h('td', [h('input', { value: row.reason, disabled: props.readOnly, onInput: (e) => (row.reason = e.target.value) })]),
-                h('td', [h('input', { value: row.executor, disabled: props.readOnly, onInput: (e) => (row.executor = e.target.value) })]),
-                h('td', [h('input', { value: row.checker, disabled: props.readOnly, onInput: (e) => (row.checker = e.target.value) })]),
-                h('td', [h('input', { type: 'checkbox', checked: row.highAlert, disabled: props.readOnly, onChange: (e) => (row.highAlert = e.target.checked) })]),
+                h('td', [h('input', { value: row.executor, disabled: props.readOnly, onInput: (e) => (row.executor = e.target.value), ...bindAudit(row, 'executor') })]),
+                h('td', [h('input', { value: row.checker, disabled: props.readOnly, onInput: (e) => (row.checker = e.target.value), ...bindAudit(row, 'checker') })]),
+                h('td', [h('input', { type: 'checkbox', checked: row.highAlert, disabled: props.readOnly, onChange: (e) => { row.highAlert = e.target.checked; emit('field-change', { rowId: row.id, field: 'highAlert', value: e.target.checked ? '是' : '否' }); } })]),
                 h('td', [h('input', { value: row.remark, disabled: props.readOnly, onInput: (e) => (row.remark = e.target.value) })]),
                 h('td', { class: 'table-actions' }, [
                   h('button', { disabled: props.readOnly, onClick: () => emit('copy', row) }, '复制'),
@@ -1041,6 +1123,7 @@ const timeFields = [
   { key: 'pacuOutTime', label: '出 PACU 时间', eventType: '其他' },
 ];
 const keyNodeFields = timeFields.filter((field) => ['recordStart', 'anesthesiaStart', 'surgeryStart', 'surgeryEnd', 'anesthesiaEnd', 'outRoomTime'].includes(field.key));
+const keyTimeSummaryFields = timeFields.filter((field) => ['inRoomTime', 'anesthesiaStart', 'surgeryStart', 'surgeryEnd', 'anesthesiaEnd', 'extubationTime', 'outRoomTime'].includes(field.key));
 const highAlertDrugs = new Set(['舒芬太尼', '瑞芬太尼', '去甲肾上腺素', '多巴胺', '肾上腺素']);
 
 const currentPatient = computed(() => patients.value.find((patient) => patient.id === selectedPatientId.value) || patients.value[0]);
@@ -1110,6 +1193,59 @@ function notify(message, type = 'info') {
   window.setTimeout(() => {
     toasts.value = toasts.value.filter((item) => item.id !== toast.id);
   }, 3200);
+}
+
+// ===== 字段修改留痕 & 录入预警 =====
+// 在 input 的 @focus 时调用 auditFocus 缓存原值；@change 时调用 auditChange 比较并写入 modificationLogs。
+// thresholdField 传入用于 evaluateThreshold 的字段名，超阈值时自动弹出 toast 预警。
+const fieldOriginals = new Map();
+
+function normalizeValue(value) {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : '';
+  return String(value);
+}
+
+function auditFocus(key, value) {
+  fieldOriginals.set(key, normalizeValue(value));
+}
+
+function auditChange(key, label, value, options = {}) {
+  const after = normalizeValue(value);
+  const before = fieldOriginals.has(key) ? fieldOriginals.get(key) : '';
+  if (options.thresholdField) {
+    const check = evaluateThreshold(options.thresholdField, value);
+    if (check.abnormal) notify(check.message, check.level || 'warn');
+  }
+  if (before === after) return;
+  fieldOriginals.set(key, after);
+  const record = currentRecord.value;
+  const status = ['已签名', '已归档', '修改中'].includes(record.status) ? '已记录' : '录入修改';
+  record.modificationLogs.push({
+    id: uniqueId('modify'),
+    time: nowTime(),
+    operator: currentOperator,
+    reason: options.reason || (status === '已记录' ? '签名后修改' : '录入修改'),
+    scope: label,
+    before: before || '（空）',
+    after: after || '（空）',
+    status,
+  });
+  addOperationLog(`修改 ${label}：${before || '空'} → ${after || '空'}`, '字段修改');
+}
+
+// 录入数值后的实时预警已合并进 auditChange 的 options.thresholdField 分支。
+
+const medicationFieldLabels = {
+  time: '时间', name: '药品名称', dose: '剂量', unit: '单位', route: '途径',
+  executor: '执行人', checker: '核对人', highAlert: '高警示标记',
+};
+function onMedicationFieldFocus({ rowId, field, value }) {
+  auditFocus(`medication.${rowId}.${field}`, value);
+}
+function onMedicationFieldChange({ rowId, field, value }) {
+  const label = `用药·${medicationFieldLabels[field] || field}`;
+  auditChange(`medication.${rowId}.${field}`, label, value);
 }
 
 function addOperationLog(action, source = '系统生成') {
@@ -1391,7 +1527,7 @@ function addMedication(name = '') {
     time: nowTime(),
     name,
     dose: '',
-    unit: name === '瑞芬太尼' ? 'ug/kg/min' : 'mg',
+    unit: name === '瑞芬太尼' ? 'ug/kg·min' : 'mg',
     route: '静脉',
     reason: '',
     executor: currentRecord.value.anesthesia.anesthesiologist || '',
@@ -1431,7 +1567,7 @@ function addInfusion() {
 }
 
 function addTransfusion() {
-  currentRecord.value.transfusions.push({ id: uniqueId('transfusion'), time: nowTime(), product: '悬浮红细胞', bagNo: '', bloodType: '', volume: 200, doubleCheck: false, reaction: '无' });
+  currentRecord.value.transfusions.push({ id: uniqueId('transfusion'), time: nowTime(), product: '悬浮红细胞', bagNo: '', bloodType: '', volume: 2, unit: 'U', doubleCheck: false, reaction: '无' });
   addEvent({ type: '输血', content: '新增输血记录', measure: '请完成血袋号、血型与双人核对', source: '事件触发' });
 }
 
@@ -1583,7 +1719,10 @@ function goPreview() {
 }
 
 function printPreview() {
-  activeTab.value = 'archive';
+  // 保持当前 Tab；实时麻醉记录单与归档预览都标记了 .print-area，可直接打印当前视图。
+  if (activeTab.value !== 'live' && activeTab.value !== 'archive') {
+    activeTab.value = 'live';
+  }
   window.setTimeout(() => window.print(), 80);
 }
 

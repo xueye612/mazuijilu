@@ -9,6 +9,31 @@ export const abnormalRules = [
   { metric: 'BIS', field: 'bis', label: '麻醉深度', low: 40, high: 60, suggestion: '结合血流动力学调整镇静镇痛和肌松策略' },
 ];
 
+// 额外的录入阈值，用于复苏/术前等场景的实时预警提示。
+export const extraThresholdRules = {
+  aldrete: { metric: 'Aldrete', label: 'Aldrete 评分', low: 9, high: null, suggestion: 'Aldrete < 9 分，需延长 PACU 观察并完善交接' },
+  painScore: { metric: '疼痛评分', label: '疼痛评分', low: null, high: 6, suggestion: '疼痛评分 ≥ 7，建议复评并加强镇痛处理' },
+};
+
+// 录入阈值评估：返回 { abnormal, level, message, rule }，给前端做实时预警与高亮。
+export function evaluateThreshold(field, value) {
+  const rule = abnormalRules.find((item) => item.field === field) || extraThresholdRules[field];
+  if (!rule) return { abnormal: false };
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || value === '' || value === null) return { abnormal: false, rule };
+  const tooLow = rule.low !== null && rule.low !== undefined && numeric < rule.low;
+  const tooHigh = rule.high !== null && rule.high !== undefined && numeric > rule.high;
+  if (!tooLow && !tooHigh) return { abnormal: false, rule };
+  const direction = tooLow ? '偏低' : '偏高';
+  const range = `${rule.low ?? '-∞'} ~ ${rule.high ?? '+∞'}`;
+  return {
+    abnormal: true,
+    level: tooLow && rule.field === 'spo2' ? 'error' : 'warn',
+    rule,
+    message: `${rule.label} ${numeric} ${direction}（正常 ${range}）。${rule.suggestion}`,
+  };
+}
+
 export const LIVE_TIME_STEP_MINUTES = 1;
 export const LIVE_DEFAULT_SEGMENT_MINUTES = 10;
 
@@ -17,6 +42,7 @@ export const medicationUnitOptions = ['mg', 'ug', 'ml', 'ug/kg·min', 'mg/h', '%
 export const bloodProductOptions = [
   { product: '血小板', unit: '治疗量', defaultVolume: 1 },
   { product: '白细胞', unit: '袋', defaultVolume: 1 },
+  { product: '悬浮红细胞', unit: 'U', defaultVolume: 2 },
   { product: '红细胞', unit: 'U', defaultVolume: 2 },
   { product: '冷沉淀', unit: 'U', defaultVolume: 10 },
 ];
@@ -80,6 +106,8 @@ export function getBloodProductOption(product) {
 
 export function normalizeTransfusionEditorPayload(form = {}) {
   const option = getBloodProductOption(form.product || form.name);
+  const anesthesiaConfirm = Boolean(form.anesthesiaConfirm ?? form.doubleCheck);
+  const circulatingConfirm = Boolean(form.circulatingConfirm ?? form.doubleCheck);
   return {
     id: form.id || '',
     time: form.time || '',
@@ -89,7 +117,9 @@ export function normalizeTransfusionEditorPayload(form = {}) {
     bloodType: form.bloodType || '',
     volume: toNumber(form.volume ?? form.amount ?? option.defaultVolume),
     unit: form.unit || option.unit,
-    doubleCheck: Boolean(form.doubleCheck),
+    anesthesiaConfirm,
+    circulatingConfirm,
+    doubleCheck: anesthesiaConfirm && circulatingConfirm,
     reaction: form.reaction || '无',
   };
 }
@@ -352,6 +382,7 @@ export function buildLiveTimeScale(start = '11:00', end = '14:30', minorInterval
       ticks.push({
         time: minutesToClock(minute),
         label: minutesToClock(minute),
+        isMajor: offset % majorInterval === 0,
         percent: totalMinutes ? Number(((offset / totalMinutes) * 100).toFixed(2)) : 0,
       });
     }

@@ -502,7 +502,7 @@ textarea:focus {
 }
 
 .live-sheet-board {
-  min-width: 1100px;
+  min-width: max(1100px, calc(140px + var(--major-columns, 7) * 130px));
   background: #fff;
   font-family: "SimSun", "Microsoft YaHei", serif;
   color: #111827;
@@ -525,7 +525,7 @@ textarea:focus {
 
 .sheet-time-area {
   position: relative;
-  background: repeating-linear-gradient(to right, transparent 0, transparent calc(100% / 42 - 1px), #111 calc(100% / 42 - 1px), #111 calc(100% / 42));
+  background: repeating-linear-gradient(to right, transparent 0, transparent calc(100% / var(--minor-columns, 42) - 1px), #111 calc(100% / var(--minor-columns, 42) - 1px), #111 calc(100% / var(--minor-columns, 42)));
 }
 
 .major-tick-label {
@@ -595,7 +595,7 @@ textarea:focus {
   background-image:
     linear-gradient(to right, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
     linear-gradient(to right, rgba(148, 163, 184, 0.7) 1px, transparent 1px);
-  background-size: calc(100% / 7) 100%, calc(100% / 42) 100%;
+  background-size: calc(100% / var(--major-columns, 7)) 100%, calc(100% / var(--minor-columns, 42)) 100%;
 }
 
 .band-medication {
@@ -711,7 +711,7 @@ textarea:focus {
     linear-gradient(to right, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
     linear-gradient(to right, rgba(148, 163, 184, 0.85) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(148, 163, 184, 0.85) 1px, transparent 1px);
-  background-size: calc(100% / 7) 100%, calc(100% / 42) 100%, 100% 22px;
+  background-size: calc(100% / var(--major-columns, 7)) 100%, calc(100% / var(--minor-columns, 42)) 100%, 100% 22px;
 }
 
 .spo2-text {
@@ -781,7 +781,7 @@ textarea:focus {
     linear-gradient(to right, rgba(148, 163, 184, 0.75) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(148, 163, 184, 0.75) 1px, transparent 1px);
-  background-size: calc(100% / 7) 100%, calc(100% / 42) 100%, 100% calc(100% / 8), 100% calc(100% / 32);
+  background-size: calc(100% / var(--major-columns, 7)) 100%, calc(100% / var(--minor-columns, 42)) 100%, 100% calc(100% / 8), 100% calc(100% / 32);
 }
 
 .live-chart-svg {
@@ -822,6 +822,61 @@ textarea:focus {
   vector-effect: non-scaling-stroke;
 }
 
+.chart-hot {
+  cursor: ns-resize;
+  transition: transform 0.12s ease, filter 0.12s ease;
+  transform-box: fill-box;
+  transform-origin: center;
+  touch-action: none;
+}
+
+.chart-hot:hover {
+  transform: scale(1.4);
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.4));
+}
+
+.live-line.spo2 {
+  stroke: #2563eb;
+  stroke-dasharray: 4 3;
+}
+
+.spo2-point {
+  fill: #2563eb;
+  stroke: #fff;
+  stroke-width: 1;
+}
+
+.temp-point {
+  fill: #6b7280;
+  stroke: #fff;
+  stroke-width: 1;
+}
+
+.drag-guide {
+  stroke: #f59e0b;
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+
+.drag-tooltip {
+  position: absolute;
+  padding: 2px 8px;
+  background: #1f2937;
+  color: #fff;
+  font-size: 12px;
+  border-radius: 3px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 5;
+}
+
+.legend-tip {
+  margin-top: 4px;
+  color: #6b7280;
+  font-size: 10px;
+}
+
 .band-status {
   min-height: 112px;
   grid-template-columns: 26px 114px 1fr;
@@ -846,7 +901,7 @@ textarea:focus {
     linear-gradient(to right, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
     linear-gradient(to right, rgba(148, 163, 184, 0.7) 1px, transparent 1px),
     linear-gradient(to bottom, #111 1px, transparent 1px);
-  background-size: calc(100% / 7) 100%, calc(100% / 42) 100%, 100% 22px;
+  background-size: calc(100% / var(--major-columns, 7)) 100%, calc(100% / var(--minor-columns, 42)) 100%, 100% 22px;
 }
 
 .status-marker {
@@ -963,6 +1018,12 @@ textarea:focus {
 .live-context-menu .menu-item:hover {
   background: #3d9cff;
   color: #fff;
+}
+
+.live-context-menu button:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+  background: transparent;
 }
 
 .live-context-menu .danger-menu {
@@ -1099,6 +1160,28 @@ textarea:focus {
   font-size: 13px;
 }
 
+.live-modal-body label .label-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.live-modal-body .form-error {
+  margin: 0;
+  padding: 4px 8px;
+  color: #c92a2a;
+  background: #ffe3e3;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.live-modal-body .hint {
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: normal;
+}
+
 .live-modal-body input,
 .live-modal-body select {
   min-height: 26px;
@@ -1107,18 +1190,33 @@ textarea:focus {
 }
 
 .time-stepper {
-  display: grid;
-  grid-template-columns: 26px 1fr 26px;
+  display: flex;
+  flex-wrap: nowrap;
   gap: 4px;
   align-items: center;
+  min-width: 0;
+}
+
+.time-stepper > input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
 }
 
 .time-stepper button {
+  flex: 0 0 auto;
   height: 26px;
+  min-width: 26px;
+  padding: 0 6px;
   border: 1px solid #adc2d7;
   border-radius: 3px;
   background: #f8fbff;
   color: #0f4d8a;
+  white-space: nowrap;
+}
+
+.time-stepper .clear-btn {
+  background: #fff5d6;
 }
 
 .observe-body {
@@ -1171,15 +1269,23 @@ textarea:focus {
 
 .medication-manager-body {
   display: grid;
-  grid-template-columns: 330px 1fr;
-  height: min(560px, calc(100vh - 180px));
-  min-height: 420px;
+  grid-template-columns: 360px 1fr;
+  grid-template-rows: minmax(260px, 1fr) auto;
+  grid-template-areas:
+    "catalog used"
+    "editor editor";
+  height: min(640px, calc(100vh - 160px));
+  min-height: 460px;
   background: #dfeaf6;
 }
 
+.medication-manager-body .drug-catalog-pane { grid-area: catalog; }
+.medication-manager-body .used-drug-pane { grid-area: used; }
+.medication-manager-body .drug-editor-panel { grid-area: editor; }
+
 .drug-catalog-pane {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto minmax(180px, 1fr);
   min-height: 0;
   border-right: 1px solid #adc2d7;
   background: #eef6fd;
@@ -1233,27 +1339,84 @@ textarea:focus {
 }
 
 .drug-editor-panel {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  padding: 12px;
+  padding: 10px 14px 12px;
   border-top: 1px solid #adc2d7;
   background: #c7d6e8;
 }
 
+.drug-editor-panel .editor-row {
+  display: grid;
+  gap: 10px;
+  align-items: end;
+}
+
+.drug-editor-panel .fields-row {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 0.7fr);
+}
+
+.drug-editor-panel .time-row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1.3fr);
+}
+
+.drug-editor-panel .mode-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.drug-editor-panel .action-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.drug-editor-panel .field-label {
+  color: #004078;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .drug-editor-panel label {
   display: grid;
+  grid-template-rows: auto auto;
   gap: 4px;
+  min-width: 0;
   color: #004078;
   font-size: 13px;
 }
 
-.drug-editor-panel label:nth-child(3),
-.drug-editor-panel label:nth-child(4),
-.drug-editor-panel label:nth-child(8),
-.drug-editor-panel label:nth-child(9),
-.drug-editor-panel .primary {
-  grid-column: 1 / -1;
+.drug-editor-panel label > input,
+.drug-editor-panel label > select {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mode-toggle {
+  display: inline-flex;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid #9bb6d0;
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.mode-toggle .mode-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 3px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.mode-toggle .mode-option input {
+  margin: 0;
 }
 
 .dose-pair {
@@ -1278,26 +1441,75 @@ textarea:focus {
   color: #0f4d8a;
 }
 
+.used-drug-empty {
+  margin: 12px 0;
+  color: #6b87a3;
+  font-size: 13px;
+  text-align: center;
+}
+
 .used-drug-card {
   display: grid;
   grid-template-columns: 1fr 64px;
   gap: 10px;
-  align-items: center;
-  min-height: 72px;
+  align-items: flex-start;
   padding: 10px;
   border-bottom: 1px solid #adc2d7;
   color: #003cff;
 }
 
-.used-drug-card strong {
-  display: block;
-  font-size: 18px;
+.used-drug-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.used-drug-card span,
-.used-drug-card small {
-  display: block;
-  margin-top: 3px;
+.used-drug-info .head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.used-drug-info .head strong {
+  font-size: 17px;
+  color: #003cff;
+}
+
+.mode-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: #c7d6e8;
+  color: #0f4d8a;
+  font-size: 11px;
+}
+
+.mode-tag.continuous {
+  background: #d6f0d8;
+  color: #1d7836;
+}
+
+.used-drug-info .row-line {
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  gap: 6px;
+  color: #1a3d6b;
+  font-size: 12px;
+}
+
+.used-drug-info .row-line .k {
+  color: #6b87a3;
+}
+
+.used-drug-info .row-line .v em {
+  font-style: normal;
+  color: #8b6b00;
+}
+
+.used-drug-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .live-data-table {
@@ -1946,6 +2158,39 @@ textarea:focus {
   border-bottom: 1px solid #e5e7eb;
 }
 
+.paper-grid .span-2 {
+  grid-column: span 2;
+}
+
+.paper-time-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px 16px;
+  margin: 4px 0 8px;
+}
+
+.paper-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.paper-table th,
+.paper-table td {
+  border: 1px solid #cbd5e1;
+  padding: 4px 6px;
+  text-align: left;
+}
+
+.paper-table th {
+  background: #f1f5f9;
+}
+
+.paper-preview .muted {
+  color: #94a3b8;
+}
+
 .capability-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2336,6 +2581,10 @@ textarea:focus {
   .bottom-status,
   .toast-stack,
   .field-menu,
+  .live-context-menu,
+  .live-modal-backdrop,
+  .live-sheet-toolbar,
+  .live-time-buttons,
   .section-card > .card-title-row .row-actions,
   .section-card:not(:has(.print-area)) {
     display: none !important;
@@ -2366,4 +2615,131 @@ textarea:focus {
     border-radius: 0;
     padding: 0;
   }
+
+  .live-sheet-scroll {
+    overflow: visible;
+    border: 1px solid #111;
+  }
+
+  .live-sheet-board {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .live-notes,
+  .live-vital-chart,
+  .live-band {
+    page-break-inside: avoid;
+  }
+
+  .paper-preview {
+    box-shadow: none;
+    background: #fff;
+  }
+
+  .paper-section,
+  .paper-columns,
+  .paper-table,
+  .paper-table tr {
+    page-break-inside: avoid;
+  }
+
+  .paper-table {
+    width: 100%;
+  }
+}
+
+/* —— 现场记录单新增 UI 规则 —— */
+.line-mode-row .mode-toggle.inline {
+  padding: 0;
+}
+.line-mode-row .mode-toggle.inline .mode-option {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+.line-confirm-row .confirm-group {
+  display: inline-flex;
+  gap: 12px;
+  margin-left: 6px;
+}
+.line-confirm-row .confirm-group .mode-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+.monitor-fetch-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 10px;
+  padding: 6px 8px;
+  background: #f0f6ff;
+  border: 1px dashed #9bb6d0;
+  border-radius: 4px;
+}
+.monitor-fetch-bar .hint {
+  color: #5a6f8a;
+  font-size: 12px;
+}
+.med-data-table .mode-tag {
+  font-size: 11px;
+  padding: 2px 6px;
+}
+.med-data-table tr {
+  cursor: pointer;
+}
+.med-data-table input[disabled] {
+  background: #f1f1f1;
+  color: #888;
+  cursor: not-allowed;
+}
+
+/* —— 编辑弹窗层级与用药数据列表列宽优化 —— */
+.live-modal-backdrop.top-layer {
+  z-index: 140;
+}
+.med-data-table {
+  table-layout: fixed;
+  width: 100%;
+}
+.med-data-table th,
+.med-data-table td {
+  padding: 4px 6px;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.med-data-table th:nth-child(1),
+.med-data-table td:nth-child(1) { width: 52px; text-align: center; }
+.med-data-table th:nth-child(2),
+.med-data-table td:nth-child(2),
+.med-data-table th:nth-child(3),
+.med-data-table td:nth-child(3) { width: 88px; }
+.med-data-table th:nth-child(4),
+.med-data-table td:nth-child(4) { width: 14%; }
+.med-data-table th:nth-child(5),
+.med-data-table td:nth-child(5) { width: 70px; }
+.med-data-table th:nth-child(6),
+.med-data-table td:nth-child(6) { width: 78px; }
+.med-data-table th:nth-child(7),
+.med-data-table td:nth-child(7) { width: 88px; }
+.med-data-table th:nth-child(8),
+.med-data-table td:nth-child(8),
+.med-data-table th:nth-child(9),
+.med-data-table td:nth-child(9) { width: 9%; }
+.med-data-table th:nth-child(10),
+.med-data-table td:nth-child(10) { width: auto; }
+.med-data-table th:nth-child(11),
+.med-data-table td:nth-child(11) { width: 110px; text-align: center; }
+.med-data-table input {
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+.med-data-table td:last-child button {
+  margin: 0 2px;
+  padding: 2px 6px;
+  font-size: 12px;
 }

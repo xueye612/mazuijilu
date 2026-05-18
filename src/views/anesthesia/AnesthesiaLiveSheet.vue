@@ -13,7 +13,7 @@
       </div>
     </div>
 
-    <div class="section-card live-paper-card">
+    <div class="section-card live-paper-card print-area">
       <div class="live-sheet-header">
         <div>
           <strong>{{ patient.name }}</strong>
@@ -28,7 +28,7 @@
       </div>
 
       <div class="live-sheet-scroll">
-        <div class="live-sheet-board" @contextmenu.prevent="openLiveMenu($event, 'grid')">
+        <div class="live-sheet-board" :style="sheetGridStyle" @contextmenu.prevent="openLiveMenu($event, 'grid')">
           <div class="sheet-time-ruler">
             <div class="sheet-left-head">项目</div>
             <div class="sheet-time-area">
@@ -44,7 +44,7 @@
                 v-for="tick in timeScale.minorTicks"
                 :key="tick.time"
                 class="minor-tick"
-                :class="{ major: tick.percent % 14.285 === 0 }"
+                :class="{ major: tick.isMajor }"
                 :style="{ left: tick.percent + '%' }"
               ></span>
             </div>
@@ -105,7 +105,7 @@
             </div>
           </div>
 
-          <div class="live-band band-transfusion">
+          <div class="live-band band-transfusion" :style="transfusionBandStyle">
             <div class="band-side vertical">输血</div>
             <div class="band-labels">
               <div v-for="row in transfusionRows" :key="row.id">{{ row.name }}</div>
@@ -124,7 +124,7 @@
             </div>
           </div>
 
-          <div class="live-band band-monitor">
+          <div class="live-band band-monitor" :style="monitorBandStyle">
             <div class="band-side vertical">监测</div>
             <div class="band-labels">
               <div v-for="item in selectedMonitorItems" :key="item">{{ item }}</div>
@@ -136,7 +136,9 @@
                 class="monitor-text"
                 :class="{ 'spo2-text': item.metric === 'SpO2', abnormal: item.abnormal }"
                 :style="{ left: timeLeft(item.time), top: item.top }"
+                :title="`${item.time} ${item.metric}：${item.value}${monitorMeta(item.metric).unit || ''}`"
                 @contextmenu.prevent.stop="openMonitorEdit($event, item.row)"
+                @click.stop="openMonitorEdit($event, item.row)"
               >
                 {{ item.value }}
               </span>
@@ -146,45 +148,87 @@
           <div class="live-vital-chart" @contextmenu.prevent.stop="openLiveMenu($event, 'chart')">
             <div class="chart-legend">
               <span class="legend-title">生命体征</span>
-              <span><b class="symbol red">○</b> 收缩压</span>
+              <span><b class="symbol red">▽</b> 收缩压</span>
               <span><b class="symbol red">△</b> 舒张压</span>
               <span><b class="symbol green">●</b> 脉搏</span>
-              <span><b class="symbol gray">◇</b> 体温</span>
-              <span><b class="symbol blue">3</b> 机械通气</span>
+              <span><b class="symbol blue">◇</b> SpO₂</span>
+              <span><b class="symbol gray">★</b> 体温</span>
+              <small class="legend-tip">拖动点可改值</small>
             </div>
             <div class="vital-scale">
               <span v-for="tick in vitalTicks" :key="tick.value" :style="{ bottom: tick.bottom + '%' }">{{ tick.value }}</span>
             </div>
             <div class="chart-grid-wrap">
-              <svg class="live-chart-svg" viewBox="0 0 1000 310" preserveAspectRatio="none">
+              <svg ref="chartSvgRef" class="live-chart-svg" viewBox="0 0 1000 300" preserveAspectRatio="none">
                 <polyline :points="chartLine('sbp')" class="live-line pressure" />
                 <polyline :points="chartLine('dbp')" class="live-line pressure thin" />
                 <polyline :points="chartLine('hr')" class="live-line pulse" />
+                <polyline :points="chartLine('spo2')" class="live-line spo2" />
+                <g>
+                  <path
+                    v-for="point in chartPoints('sbp')"
+                    :key="point.key"
+                    :d="trianglePath(point.x, point.y, false)"
+                    class="pressure-point chart-hot"
+                    @pointerdown.stop="startDragPoint($event, point)"
+                    @contextmenu.prevent.stop="openMonitorEdit($event, point.row)"
+                  >
+                    <title>{{ point.row.time }} 收缩压：{{ point.value }} mmHg（拖动可改值）</title>
+                  </path>
+                  <path
+                    v-for="point in chartPoints('dbp')"
+                    :key="point.key"
+                    :d="trianglePath(point.x, point.y, true)"
+                    class="pressure-point chart-hot"
+                    @pointerdown.stop="startDragPoint($event, point)"
+                    @contextmenu.prevent.stop="openMonitorEdit($event, point.row)"
+                  >
+                    <title>{{ point.row.time }} 舒张压：{{ point.value }} mmHg（拖动可改值）</title>
+                  </path>
+                </g>
                 <g>
                   <circle
                     v-for="point in chartPoints('hr')"
                     :key="point.key"
                     :cx="point.x"
                     :cy="point.y"
-                    r="4"
-                    class="pulse-point"
-                  />
+                    r="5"
+                    class="pulse-point chart-hot"
+                    @pointerdown.stop="startDragPoint($event, point)"
+                    @contextmenu.prevent.stop="openMonitorEdit($event, point.row)"
+                  >
+                    <title>{{ point.row.time }} 脉搏：{{ point.value }} 次/分（拖动可改值）</title>
+                  </circle>
                 </g>
                 <g>
                   <path
-                    v-for="point in chartPoints('sbp')"
+                    v-for="point in chartPoints('spo2')"
                     :key="point.key"
-                    :d="trianglePath(point.x, point.y, true)"
-                    class="pressure-point"
-                  />
-                  <path
-                    v-for="point in chartPoints('dbp')"
-                    :key="point.key"
-                    :d="trianglePath(point.x, point.y, false)"
-                    class="pressure-point"
-                  />
+                    :d="diamondPath(point.x, point.y)"
+                    class="spo2-point chart-hot"
+                    @pointerdown.stop="startDragPoint($event, point)"
+                    @contextmenu.prevent.stop="openMonitorEdit($event, point.row)"
+                  >
+                    <title>{{ point.row.time }} SpO₂：{{ point.value }}%（拖动可改值）</title>
+                  </path>
                 </g>
+                <g>
+                  <path
+                    v-for="point in chartPoints('temp')"
+                    :key="point.key"
+                    :d="starPath(point.x, point.y)"
+                    class="temp-point chart-hot"
+                    @pointerdown.stop="startDragPoint($event, point)"
+                    @contextmenu.prevent.stop="openMonitorEdit($event, point.row)"
+                  >
+                    <title>{{ point.row.time }} 体温：{{ point.value }}°C（拖动可改值）</title>
+                  </path>
+                </g>
+                <line v-if="dragHint.visible" :x1="0" :x2="1000" :y1="dragHint.y" :y2="dragHint.y" class="drag-guide" />
               </svg>
+              <div v-if="dragHint.visible" class="drag-tooltip" :style="{ left: dragHint.left + 'px', top: dragHint.top + 'px' }">
+                {{ dragHint.label }}
+              </div>
             </div>
           </div>
 
@@ -193,8 +237,8 @@
             <div class="status-labels">
               <div>尿量（ml）</div>
               <div>出血量（ml）</div>
+              <div>引流量（ml）</div>
               <div>其他（ml）</div>
-              <div>特殊用药序号</div>
               <div>手术关键操作</div>
             </div>
             <div class="band-grid status-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'balance')">
@@ -269,59 +313,91 @@
       :style="{ left: liveMenu.x + 'px', top: liveMenu.y + 'px' }"
       @click.stop
     >
-      <button v-if="hasLineTarget" @click="openLineEditor">编辑数据</button>
-      <button v-if="hasLineTarget" @click="continueLine">继续用药/输液</button>
-      <button v-if="hasLineTarget" class="danger-menu" @click="deleteLine">删除当前项</button>
-      <button v-if="showDrugMenus" @click="openMedicationManager()">麻醉用药维护</button>
-      <button v-if="showFluidMenus" @click="openInfusionEditor(null)">新增输液</button>
-      <button v-if="showFluidMenus" @click="openTransfusionEditor(null)">新增输血</button>
-      <div v-if="showDrugMenus" class="menu-item has-sub">
-        <span>静脉麻醉药</span>
-        <div class="submenu">
-          <button @click="addMenuDrug('右美托咪定', true)">右美托咪定 持续用药</button>
-          <button @click="addMenuDrug('右美托咪定', false)">右美托咪定 单次用药</button>
-          <button @click="addMenuDrug('丙泊酚', true)">丙泊酚 持续用药</button>
-          <button @click="addMenuDrug('瑞芬太尼', true)">瑞芬太尼 持续用药</button>
+      <template v-for="section in menuSections" :key="section.key">
+        <div v-if="section.key === 'fluid-infusion'" class="menu-item has-sub">
+          <span>新增输液</span>
+          <div class="submenu">
+            <button v-for="item in infusionCatalog" :key="item.name" :disabled="readOnly" @click="addMenuInfusion(item)">{{ item.name }} {{ item.spec }}</button>
+            <button :disabled="readOnly" @click="openInfusionEditor(null)">自定义输液…</button>
+          </div>
         </div>
-      </div>
-      <div v-if="showDrugMenus" class="menu-item has-sub">
-        <span>局麻用药</span>
-        <div class="submenu">
-          <div v-for="drug in localAnestheticDrugs" :key="drug" class="menu-item has-sub">
-            <span>{{ drug }}</span>
-            <div class="submenu">
-              <button @click="addMenuDrug(drug, true)">持续用药</button>
-              <button @click="addMenuDrug(drug, false)">单次用药</button>
+        <div v-else-if="section.key === 'fluid-transfusion'" class="menu-item has-sub">
+          <span>新增输血</span>
+          <div class="submenu">
+            <button v-for="item in bloodProductOptions" :key="item.product" :disabled="readOnly" @click="addMenuTransfusion(item)">{{ item.product }}（{{ item.unit }}）</button>
+            <button :disabled="readOnly" @click="openTransfusionEditor(null)">自定义输血…</button>
+          </div>
+        </div>
+        <div v-else-if="section.key === 'drug-iv'" class="menu-item has-sub">
+          <span>静脉麻醉药</span>
+          <div class="submenu">
+            <div v-for="drug in ivAnestheticDrugs" :key="drug" class="menu-item has-sub">
+              <span>{{ drug }}</span>
+              <div class="submenu">
+                <button :disabled="readOnly" @click="addQuickDrug(drug, true)">持续用药</button>
+                <button :disabled="readOnly" @click="addQuickDrug(drug, false)">单次用药</button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="menu-item has-sub">
-        <span>最近用药</span>
-        <div class="submenu">
-          <button v-for="drug in recentDrugNames" :key="drug" @click="addMenuDrug(drug, false)">{{ drug }}</button>
+        <div v-else-if="section.key === 'drug-local'" class="menu-item has-sub">
+          <span>局麻用药</span>
+          <div class="submenu">
+            <div v-for="drug in localAnestheticDrugs" :key="drug" class="menu-item has-sub">
+              <span>{{ drug }}</span>
+              <div class="submenu">
+                <button :disabled="readOnly" @click="addQuickDrug(drug, true)">持续用药</button>
+                <button :disabled="readOnly" @click="addQuickDrug(drug, false)">单次用药</button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-      <button v-if="isGridMenu" @click="openMonitorDialog(false)">添加数据</button>
-      <button v-if="isGridMenu" @click="openMonitorDialog(true)">批量添加数据</button>
-      <button v-if="isGridMenu" @click="openDataList('vitals')">体征数据列表</button>
-      <button v-if="isGridMenu" @click="showObserveSetting = true">监测项目</button>
-      <button v-if="isGridMenu || liveMenu.type === 'balance'" @click="openOutputEditor(null)">添加出入量</button>
-      <button v-if="isGridMenu || liveMenu.type === 'balance'" @click="openDataList('outputs')">出入量列表</button>
-      <button v-if="liveMenu.type === 'medication'" @click="openDataList('medications')">用药列表</button>
-      <button v-if="liveMenu.type === 'infusion' || liveMenu.type === 'infusionGrid'" @click="openDataList('infusions')">输液列表</button>
-      <button v-if="liveMenu.type === 'transfusion' || liveMenu.type === 'transfusionGrid'" @click="openDataList('transfusions')">输血列表</button>
+        <div v-else-if="section.key === 'drug-recent'" class="menu-item has-sub">
+          <span>最近用药</span>
+          <div class="submenu">
+            <button v-if="!recentDrugNames.length" disabled>暂无</button>
+            <button v-for="drug in recentDrugNames" :key="drug" :disabled="readOnly" @click="addQuickDrug(drug, false)">{{ drug }}</button>
+          </div>
+        </div>
+        <button v-else-if="section.key === 'edit-line'" :disabled="readOnly" @click="openLineEditor">编辑数据</button>
+        <button v-else-if="section.key === 'continue-line'" :disabled="readOnly" @click="continueLine">继续用药/输液</button>
+        <button v-else-if="section.key === 'delete-line'" class="danger-menu" :disabled="readOnly" @click="deleteLine">删除当前项</button>
+        <button v-else-if="section.key === 'vital-add'" :disabled="readOnly" @click="openMonitorDialog(false)">添加数据</button>
+        <button v-else-if="section.key === 'vital-batch'" :disabled="readOnly" @click="openMonitorDialog(true)">批量添加数据</button>
+        <button v-else-if="section.key === 'vital-list'" @click="openDataList('vitals')">体征数据列表</button>
+        <button v-else-if="section.key === 'vital-observe'" :disabled="readOnly" @click="showObserveSetting = true">监测项目</button>
+        <button v-else-if="section.key === 'output-add'" :disabled="readOnly" @click="openOutputEditor(null)">添加出入量</button>
+        <button v-else-if="section.key === 'output-list'" @click="openDataList('outputs')">出入量列表</button>
+        <button v-else-if="section.key === 'medication-list'" @click="openDataList('medications')">用药列表</button>
+        <button v-else-if="section.key === 'infusion-list'" @click="openDataList('infusions')">输液列表</button>
+        <button v-else-if="section.key === 'transfusion-list'" @click="openDataList('transfusions')">输血列表</button>
+      </template>
     </div>
 
-    <div v-if="showLineEditor" class="live-modal-backdrop">
+    <div v-if="showLineEditor" class="live-modal-backdrop top-layer">
       <div class="live-modal small">
         <header>
           <strong>{{ lineForm.kind }}数据</strong>
           <button @click="showLineEditor = false">×</button>
         </header>
         <div class="live-modal-body">
-          <label v-if="lineForm.kind !== '输血'">名称<input v-model="lineForm.name" /></label>
-          <label v-else>
+          <label v-if="lineForm.kind === '输液'">
+            输液品名
+            <select v-model="lineForm.name" @change="syncLineInfusionCatalog">
+              <option v-for="item in infusionCatalog" :key="item.name" :value="item.name">{{ item.name }}（{{ item.spec }}）</option>
+              <option value="__custom__">自定义…</option>
+            </select>
+          </label>
+          <label v-if="lineForm.kind === '输液' && lineForm.name === '__custom__'">自定义名称<input v-model="lineForm.customName" /></label>
+          <label v-if="lineForm.kind === '用药'">药品名称<input v-model="lineForm.name" /></label>
+          <label v-if="lineForm.kind === '用药'" class="line-mode-row">
+            <span class="label-text">类型</span>
+            <span class="mode-toggle inline">
+              <label class="mode-option"><input v-model="lineForm.continuous" type="radio" :value="false" />单次用药</label>
+              <label class="mode-option"><input v-model="lineForm.continuous" type="radio" :value="true" />持续用药</label>
+            </span>
+          </label>
+          <label v-if="lineForm.kind === '输血'">
             血品
             <select v-model="lineForm.name" @change="syncLineBloodProduct">
               <option v-for="item in bloodProductOptions" :key="item.product" :value="item.product">{{ item.product }}</option>
@@ -336,13 +412,15 @@
             </span>
           </label>
           <label>
-            结束时间
+            <span class="label-text">结束时间<small v-if="lineForm.kind === '输液'" class="hint">（可为空）</small><small v-else-if="lineForm.kind === '用药' && !lineForm.continuous" class="hint">（单次用药已禁用）</small></span>
             <span class="time-stepper">
-              <button @click="shiftObjectTime(lineForm, 'endTime', -LIVE_TIME_STEP_MINUTES)">-</button>
-              <input v-model="lineForm.endTime" type="time" step="60" @keydown.up.prevent="shiftObjectTime(lineForm, 'endTime', LIVE_TIME_STEP_MINUTES)" @keydown.down.prevent="shiftObjectTime(lineForm, 'endTime', -LIVE_TIME_STEP_MINUTES)" />
-              <button @click="shiftObjectTime(lineForm, 'endTime', LIVE_TIME_STEP_MINUTES)">+</button>
+              <button :disabled="lineForm.kind === '用药' && !lineForm.continuous" @click="shiftObjectTime(lineForm, 'endTime', -LIVE_TIME_STEP_MINUTES)">-</button>
+              <input v-model="lineForm.endTime" type="time" step="60" :disabled="lineForm.kind === '用药' && !lineForm.continuous" @keydown.up.prevent="shiftObjectTime(lineForm, 'endTime', LIVE_TIME_STEP_MINUTES)" @keydown.down.prevent="shiftObjectTime(lineForm, 'endTime', -LIVE_TIME_STEP_MINUTES)" />
+              <button :disabled="lineForm.kind === '用药' && !lineForm.continuous" @click="shiftObjectTime(lineForm, 'endTime', LIVE_TIME_STEP_MINUTES)">+</button>
+              <button v-if="lineForm.kind === '输液'" class="small clear-btn" @click="lineForm.endTime = ''" type="button">清空</button>
             </span>
           </label>
+          <p v-if="lineFormError" class="form-error">{{ lineFormError }}</p>
           <label>剂量/容量<input v-model="lineForm.amount" type="number" /></label>
           <label v-if="lineForm.kind === '用药'">
             单位
@@ -352,14 +430,18 @@
           </label>
           <label v-if="lineForm.kind === '输血'">
             血品单位
-            <select v-model="lineForm.volumeUnit">
-              <option v-for="unit in transfusionUnits" :key="unit">{{ unit }}</option>
-            </select>
+            <input :value="lineForm.volumeUnit" readonly title="单位随血品自动设置" />
           </label>
           <label v-if="lineForm.kind === '输血'">血型<input v-model="lineForm.bloodType" /></label>
           <label v-if="lineForm.kind === '用药'">途径<input v-model="lineForm.route" /></label>
           <label v-if="lineForm.kind === '输血'">血袋号<input v-model="lineForm.bagNo" /></label>
-          <label v-if="lineForm.kind === '输血'">双人核对<input v-model="lineForm.doubleCheck" type="checkbox" /></label>
+          <label v-if="lineForm.kind === '输血'" class="line-confirm-row">
+            <span class="label-text">双人核对</span>
+            <span class="confirm-group">
+              <label class="mode-option"><input v-model="lineForm.anesthesiaConfirm" type="checkbox" />麻醉医师</label>
+              <label class="mode-option"><input v-model="lineForm.circulatingConfirm" type="checkbox" />巡回护士</label>
+            </span>
+          </label>
           <label v-if="lineForm.kind === '输血'">反应情况<input v-model="lineForm.reaction" /></label>
         </div>
         <footer>
@@ -369,88 +451,10 @@
       </div>
     </div>
 
-    <div v-if="showMedicationManager" class="live-modal-backdrop">
-      <div class="live-modal medication-manager-modal">
-        <header>
-          <strong>麻醉用药</strong>
-          <button @click="showMedicationManager = false">×</button>
-        </header>
-        <div class="medication-manager-body">
-          <aside class="drug-catalog-pane">
-            <label class="drug-search">拼音字头<input v-model="medicationSearch" /></label>
-            <table class="drug-catalog-table">
-              <thead><tr><th>药品名称</th><th>单位</th><th>规格</th></tr></thead>
-              <tbody>
-                <tr v-for="drug in filteredMedicationCatalog" :key="drug.name" @click="selectMedicationCatalog(drug)">
-                  <td>{{ drug.name }}</td>
-                  <td>{{ drug.unit }}</td>
-                  <td>{{ drug.route }}</td>
-                </tr>
-              </tbody>
-            </table>
-            <div class="drug-editor-panel">
-              <label><input v-model="medicationForm.mode" type="radio" value="single" /> 单次</label>
-              <label><input v-model="medicationForm.mode" type="radio" value="continuous" /> 持续</label>
-              <label>药品名称<input v-model="medicationForm.name" /></label>
-              <label>
-                注入方式
-                <select v-model="medicationForm.route">
-                  <option v-for="route in medicationRoutes" :key="route">{{ route }}</option>
-                </select>
-              </label>
-              <label>
-                剂量
-                <span class="dose-pair">
-                  <input v-model="medicationForm.dose" type="number" />
-                  <select v-model="medicationForm.unit">
-                    <option v-for="unit in medicationUnitOptions" :key="unit">{{ unit }}</option>
-                  </select>
-                </span>
-              </label>
-              <label>数量<input v-model.number="medicationForm.quantity" type="number" /></label>
-              <label>日期<input v-model="medicationForm.date" type="date" /></label>
-              <label>
-                开始时间
-                <span class="time-stepper">
-                  <button @click="shiftObjectTime(medicationForm, 'time', -LIVE_TIME_STEP_MINUTES)">-</button>
-                  <input v-model="medicationForm.time" type="time" step="60" @keydown.up.prevent="shiftObjectTime(medicationForm, 'time', LIVE_TIME_STEP_MINUTES)" @keydown.down.prevent="shiftObjectTime(medicationForm, 'time', -LIVE_TIME_STEP_MINUTES)" />
-                  <button @click="shiftObjectTime(medicationForm, 'time', LIVE_TIME_STEP_MINUTES)">+</button>
-                </span>
-              </label>
-              <label v-if="medicationForm.mode === 'continuous'">
-                结束时间
-                <span class="time-stepper">
-                  <button @click="shiftObjectTime(medicationForm, 'endTime', -LIVE_TIME_STEP_MINUTES)">-</button>
-                  <input v-model="medicationForm.endTime" type="time" step="60" @keydown.up.prevent="shiftObjectTime(medicationForm, 'endTime', LIVE_TIME_STEP_MINUTES)" @keydown.down.prevent="shiftObjectTime(medicationForm, 'endTime', -LIVE_TIME_STEP_MINUTES)" />
-                  <button @click="shiftObjectTime(medicationForm, 'endTime', LIVE_TIME_STEP_MINUTES)">+</button>
-                </span>
-              </label>
-              <button class="btn small primary" @click="saveMedicationForm">{{ medicationForm.id ? '保存修改' : '添加' }}</button>
-            </div>
-          </aside>
-
-          <section class="used-drug-pane">
-            <h4>麻醉用药</h4>
-            <div v-for="row in record.medications" :key="row.id" class="used-drug-card">
-              <div>
-                <strong>{{ row.name }}</strong>
-                <span>{{ row.dose }}{{ row.unit }}</span>
-                <small>{{ row.route }} · {{ row.endTime ? `${row.time} ~ ${row.endTime}` : row.time }}</small>
-              </div>
-              <button class="btn small" @click="editMedicationFromManager(row)">编辑</button>
-            </div>
-          </section>
-        </div>
-        <footer>
-          <button class="btn small" @click="showMedicationManager = false">关闭</button>
-        </footer>
-      </div>
-    </div>
-
     <div v-if="showMonitorDialog" class="live-modal-backdrop">
       <div class="live-modal">
         <header>
-          <strong>新建监护项目结果</strong>
+          <strong>{{ monitorForm.editingId ? '编辑监护项目结果' : '新建监护项目结果' }}</strong>
           <button @click="showMonitorDialog = false">×</button>
         </header>
         <div class="live-modal-body monitor-form">
@@ -474,10 +478,14 @@
           </label>
           <label v-if="monitorForm.batch">记录间隔<input v-model.number="monitorForm.interval" type="number" min="1" /> 分钟</label>
           <h4>新建监护项目结果</h4>
+          <div class="monitor-fetch-bar">
+            <button class="btn small" type="button" :disabled="readOnly" @click="fetchMonitorMock">自动获取监护数据</button>
+            <span class="hint">未获取时默认为空；双击已有记录可带出默认值进入编辑</span>
+          </div>
           <label v-for="item in selectedMonitorItems" :key="item">
             {{ item }}
             <select v-if="monitorMeta(item).options" v-model="monitorValues[item]">
-              <option v-for="option in monitorMeta(item).options" :key="option">{{ option }}</option>
+              <option v-for="option in monitorMeta(item).options" :key="option" :value="option">{{ option === '' ? '（清空）' : option }}</option>
             </select>
             <input v-else v-model="monitorValues[item]" :type="monitorMeta(item).type || 'text'" />
             <span>{{ monitorMeta(item).unit }}</span>
@@ -559,26 +567,35 @@
           <table v-if="activeDataList === 'vitals'" class="live-data-table">
             <thead><tr><th>时间</th><th v-for="item in selectedMonitorItems" :key="item">{{ item }}</th><th>来源</th><th>操作</th></tr></thead>
             <tbody>
-              <tr v-for="row in record.vitals" :key="row.id">
-                <td><input v-model="row.time" type="time" /></td>
-                <td v-for="item in selectedMonitorItems" :key="item"><input :value="monitorValue(row, item)" @input="setMonitorValue(row, item, $event.target.value)" /></td>
-                <td><input v-model="row.source" /></td>
-                <td><button @click="deleteRow(record.vitals, row.id)">删除</button></td>
+              <tr v-for="row in record.vitals" :key="row.id" @dblclick="openMonitorEdit($event, row)">
+                <td><input v-model="row.time" type="time" :disabled="readOnly" /></td>
+                <td v-for="item in selectedMonitorItems" :key="item"><input :value="monitorValue(row, item)" :disabled="readOnly" @input="setMonitorValue(row, item, $event.target.value)" /></td>
+                <td><input v-model="row.source" :disabled="readOnly" /></td>
+                <td><button :disabled="readOnly" @click="deleteRow(record.vitals, row.id)">删除</button></td>
               </tr>
             </tbody>
           </table>
 
-          <table v-if="activeDataList === 'medications'" class="live-data-table">
-            <thead><tr><th>时间</th><th>结束</th><th>药名</th><th>剂量</th><th>单位</th><th>途径</th><th>操作</th></tr></thead>
+          <table v-if="activeDataList === 'medications'" class="live-data-table med-data-table">
+            <thead><tr><th>类型</th><th>时间</th><th>结束</th><th>药名</th><th>剂量</th><th>单位</th><th>途径</th><th>执行人</th><th>核对</th><th>备注</th><th>操作</th></tr></thead>
             <tbody>
-              <tr v-for="row in record.medications" :key="row.id">
-                <td><input v-model="row.time" type="time" /></td>
-                <td><input v-model="row.endTime" type="time" /></td>
-                <td><input v-model="row.name" /></td>
-                <td><input v-model="row.dose" /></td>
-                <td><input v-model="row.unit" /></td>
-                <td><input v-model="row.route" /></td>
-                <td><button @click="deleteRow(record.medications, row.id)">删除</button></td>
+              <tr v-for="row in record.medications" :key="row.id" @dblclick="openLineEditFromList(row)">
+                <td>
+                  <span class="mode-tag" :class="{ continuous: isContinuousDrug(row) }">{{ isContinuousDrug(row) ? '持续' : '单次' }}</span>
+                </td>
+                <td><input v-model="row.time" type="time" :disabled="readOnly" /></td>
+                <td><input v-model="row.endTime" type="time" :disabled="readOnly || !isContinuousDrug(row)" :title="!isContinuousDrug(row) ? '单次用药无结束时间' : ''" /></td>
+                <td><input v-model="row.name" :disabled="readOnly" /></td>
+                <td><input v-model="row.dose" :disabled="readOnly" /></td>
+                <td><input v-model="row.unit" :disabled="readOnly" /></td>
+                <td><input v-model="row.route" :disabled="readOnly" /></td>
+                <td><input v-model="row.executor" :disabled="readOnly" /></td>
+                <td><input v-model="row.checker" :disabled="readOnly" /></td>
+                <td><input v-model="row.remark" :disabled="readOnly" /></td>
+                <td>
+                  <button :disabled="readOnly" @click="openLineEditFromList(row)">编辑</button>
+                  <button :disabled="readOnly" @click="deleteRow(record.medications, row.id)">删除</button>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -587,39 +604,40 @@
             <thead><tr><th>时间</th><th>结束</th><th>液体</th><th>规格</th><th>量 ml</th><th>执行人</th><th>操作</th></tr></thead>
             <tbody>
               <tr v-for="row in record.infusions" :key="row.id">
-                <td><input v-model="row.time" type="time" /></td>
-                <td><input v-model="row.endTime" type="time" /></td>
-                <td><input v-model="row.name" /></td>
-                <td><input v-model="row.spec" /></td>
-                <td><input v-model.number="row.volume" type="number" /></td>
-                <td><input v-model="row.executor" /></td>
-                <td><button @click="deleteRow(record.infusions, row.id)">删除</button></td>
+                <td><input v-model="row.time" type="time" :disabled="readOnly" /></td>
+                <td><input v-model="row.endTime" type="time" :disabled="readOnly" /></td>
+                <td><input v-model="row.name" :disabled="readOnly" /></td>
+                <td><input v-model="row.spec" :disabled="readOnly" /></td>
+                <td><input v-model.number="row.volume" type="number" :disabled="readOnly" /></td>
+                <td><input v-model="row.executor" :disabled="readOnly" /></td>
+                <td><button :disabled="readOnly" @click="deleteRow(record.infusions, row.id)">删除</button></td>
               </tr>
             </tbody>
           </table>
 
           <table v-if="activeDataList === 'transfusions'" class="live-data-table">
-            <thead><tr><th>时间</th><th>结束</th><th>血品</th><th>血袋号</th><th>血型</th><th>数量</th><th>单位</th><th>核对</th><th>反应</th><th>操作</th></tr></thead>
+            <thead><tr><th>时间</th><th>结束</th><th>血品</th><th>血袋号</th><th>血型</th><th>数量</th><th>单位</th><th>麻醉核对</th><th>巡回核对</th><th>反应</th><th>操作</th></tr></thead>
             <tbody>
               <tr v-for="row in record.transfusions" :key="row.id">
-                <td><input v-model="row.time" type="time" /></td>
-                <td><input v-model="row.endTime" type="time" /></td>
+                <td><input v-model="row.time" type="time" :disabled="readOnly" /></td>
+                <td><input v-model="row.endTime" type="time" :disabled="readOnly" /></td>
                 <td>
-                  <select v-model="row.product" @change="syncBloodProductRow(row)">
+                  <select v-model="row.product" :disabled="readOnly" @change="syncBloodProductRow(row)">
                     <option v-for="item in bloodProductOptions" :key="item.product" :value="item.product">{{ item.product }}</option>
                   </select>
                 </td>
-                <td><input v-model="row.bagNo" /></td>
-                <td><input v-model="row.bloodType" /></td>
-                <td><input v-model.number="row.volume" type="number" /></td>
+                <td><input v-model="row.bagNo" :disabled="readOnly" /></td>
+                <td><input v-model="row.bloodType" :disabled="readOnly" /></td>
+                <td><input v-model.number="row.volume" type="number" :disabled="readOnly" /></td>
                 <td>
-                  <select v-model="row.unit">
+                  <select v-model="row.unit" :disabled="readOnly">
                     <option v-for="unit in transfusionUnits" :key="unit">{{ unit }}</option>
                   </select>
                 </td>
-                <td><input v-model="row.doubleCheck" type="checkbox" /></td>
-                <td><input v-model="row.reaction" /></td>
-                <td><button @click="deleteRow(record.transfusions, row.id)">删除</button></td>
+                <td><input v-model="row.anesthesiaConfirm" type="checkbox" :disabled="readOnly" @change="row.doubleCheck = row.anesthesiaConfirm && row.circulatingConfirm" /></td>
+                <td><input v-model="row.circulatingConfirm" type="checkbox" :disabled="readOnly" @change="row.doubleCheck = row.anesthesiaConfirm && row.circulatingConfirm" /></td>
+                <td><input v-model="row.reaction" :disabled="readOnly" /></td>
+                <td><button :disabled="readOnly" @click="deleteRow(record.transfusions, row.id)">删除</button></td>
               </tr>
             </tbody>
           </table>
@@ -628,13 +646,13 @@
             <thead><tr><th>时间</th><th>尿量</th><th>出血</th><th>引流</th><th>其他</th><th>备注</th><th>操作</th></tr></thead>
             <tbody>
               <tr v-for="row in record.outputs" :key="row.id">
-                <td><input v-model="row.time" type="time" /></td>
-                <td><input v-model.number="row.urine" type="number" /></td>
-                <td><input v-model.number="row.bloodLoss" type="number" /></td>
-                <td><input v-model.number="row.drainage" type="number" /></td>
-                <td><input v-model.number="row.other" type="number" /></td>
-                <td><input v-model="row.remark" /></td>
-                <td><button @click="deleteRow(record.outputs, row.id)">删除</button></td>
+                <td><input v-model="row.time" type="time" :disabled="readOnly" /></td>
+                <td><input v-model.number="row.urine" type="number" :disabled="readOnly" /></td>
+                <td><input v-model.number="row.bloodLoss" type="number" :disabled="readOnly" /></td>
+                <td><input v-model.number="row.drainage" type="number" :disabled="readOnly" /></td>
+                <td><input v-model.number="row.other" type="number" :disabled="readOnly" /></td>
+                <td><input v-model="row.remark" :disabled="readOnly" /></td>
+                <td><button :disabled="readOnly" @click="deleteRow(record.outputs, row.id)">删除</button></td>
               </tr>
             </tbody>
           </table>
@@ -674,19 +692,17 @@ const liveMenu = reactive({ visible: false, x: 0, y: 0, type: 'grid', target: nu
 const saveBadge = reactive({ visible: false, x: 0, y: 0, time: '' });
 const dragState = reactive({ active: false, mode: '', row: null, startX: 0, originalStart: '', originalEnd: '' });
 const showLineEditor = ref(false);
-const showMedicationManager = ref(false);
 const showMonitorDialog = ref(false);
 const showOutputDialog = ref(false);
 const showObserveSetting = ref(false);
 const showDataModal = ref(false);
 const activeDataList = ref('vitals');
-const selectedMonitorItems = ref(['SpO2', 'ECG', '有创舒张压']);
+const selectedMonitorItems = ref(['SpO2', 'ECG', '收缩压', '舒张压', '脉搏', '体温', '机械通气']);
 const monitorValues = reactive({});
-const lineForm = reactive({ kind: '用药', id: '', name: '', time: '', endTime: '', amount: '', unit: '', route: '', bagNo: '', bloodType: '', volumeUnit: '', doubleCheck: false, reaction: '无', continuous: false });
+const lineForm = reactive({ kind: '用药', id: '', name: '', customName: '', time: '', endTime: '', amount: '', unit: '', route: '', bagNo: '', bloodType: '', volumeUnit: '', doubleCheck: false, anesthesiaConfirm: false, circulatingConfirm: false, reaction: '无', continuous: false });
+const lineFormError = ref('');
 const outputForm = reactive({ id: '', time: '', urine: 0, bloodLoss: 0, drainage: 0, other: 0, remark: '' });
-const monitorForm = reactive({ batch: false, date: '2026-05-18', time: '11:06', endTime: '11:36', interval: 10 });
-const medicationSearch = ref('');
-const medicationForm = reactive({ id: '', mode: 'single', name: '', route: '静脉注射', dose: '', unit: 'mg', quantity: 0, date: '2026-05-18', time: '11:06', endTime: '11:07' });
+const monitorForm = reactive({ batch: false, date: '2026-05-18', time: '11:06', endTime: '11:36', interval: 10, editingId: '' });
 
 const dataTabs = [
   { key: 'vitals', label: '体征' },
@@ -695,7 +711,7 @@ const dataTabs = [
   { key: 'transfusions', label: '输血' },
   { key: 'outputs', label: '出入量' },
 ];
-const monitorOptions = ['ETCO2', 'ECG', 'NIBP', 'ART', 'RESP', 'BIS', 'T', '气道压力', 'MAC', '呼吸动力', 'SpO2', '有创舒张压', 'TV'];
+const monitorOptions = ['SpO2', 'ECG', '收缩压', '舒张压', '脉搏', '体温', '机械通气', 'ETCO2', 'NIBP', 'ART', 'RESP', 'BIS', '气道压力', 'MAC', '呼吸动力', '有创舒张压', 'TV'];
 const localAnestheticDrugs = ['0.375%布比卡因', '0.6%甲磺酸罗哌卡因', '0.1875%布比卡因', '0.3%罗哌卡因', '0.25%罗哌卡因'];
 const ivAnestheticDrugs = ['右美托咪定', '丙泊酚', '瑞芬太尼', '舒芬太尼', '罗库溴铵'];
 const infusionCatalog = [
@@ -720,7 +736,6 @@ const medicationCatalog = [
   { name: '麻黄碱', unit: 'mg', dose: 6, route: '静脉注射' },
   { name: '阿托品', unit: 'mg', dose: 0.5, route: '静脉注射' },
 ];
-const medicationRoutes = ['静脉注射', '泵入', '吸入', '硬膜外', '蛛网膜下腔', '局部浸润'];
 const transfusionUnits = [...new Set(bloodProductOptions.map((item) => item.unit))];
 const vitalListFields = [
   { key: 'sbp', label: '收缩压' },
@@ -736,17 +751,22 @@ const vitalListFields = [
 ];
 const monitorDefaults = {
   SpO2: { key: 'spo2', default: 99, unit: '%', type: 'number' },
-  ECG: { key: 'ecg', default: '房颤', unit: 'bpm', options: ['窦性', '房颤', '室早', '起搏'] },
-  有创舒张压: { key: 'invasiveDbp', default: 64, unit: 'mmHg', type: 'number' },
+  ECG: { key: 'ecg', default: '窦性', unit: '', options: ['', '窦性', '房颤', '室早', '起搏'] },
+  '收缩压': { key: 'sbp', default: 120, unit: 'mmHg', type: 'number' },
+  '舒张压': { key: 'dbp', default: 70, unit: 'mmHg', type: 'number' },
+  '脉搏': { key: 'hr', default: 75, unit: '次/分', type: 'number' },
+  '机械通气': { key: 'ventilation', default: 'IPPV', unit: '', options: ['', 'IPPV', 'SIMV', 'PCV', 'PSV', '自主呼吸'] },
+  '体温': { key: 'temp', default: 36.5, unit: '℃', type: 'number' },
+  '有创舒张压': { key: 'invasiveDbp', default: 64, unit: 'mmHg', type: 'number' },
   ETCO2: { key: 'etco2', default: 38, unit: 'mmHg', type: 'number' },
   NIBP: { key: 'nibp', default: '120/75', unit: 'mmHg' },
   ART: { key: 'art', default: '118/70', unit: 'mmHg' },
   RESP: { key: 'rr', default: 12, unit: '次/分', type: 'number' },
   BIS: { key: 'bis', default: 48, unit: '', type: 'number' },
   T: { key: 'temp', default: 36.5, unit: '℃', type: 'number' },
-  气道压力: { key: 'airwayPressure', default: 18, unit: 'cmH2O', type: 'number' },
+  '气道压力': { key: 'airwayPressure', default: 18, unit: 'cmH2O', type: 'number' },
   MAC: { key: 'mac', default: 0.9, unit: '', type: 'number' },
-  呼吸动力: { key: 'respPower', default: '正常', unit: '' },
+  '呼吸动力': { key: 'respPower', default: '正常', unit: '' },
   TV: { key: 'tv', default: 450, unit: 'ml', type: 'number' },
 };
 
@@ -757,13 +777,62 @@ const hasLineTarget = computed(() => ['medication', 'infusion', 'transfusion'].i
 const isGridMenu = computed(() => ['grid', 'monitor', 'chart'].includes(liveMenu.type));
 const showDrugMenus = computed(() => ['grid', 'drugGrid', 'medication'].includes(liveMenu.type));
 const showFluidMenus = computed(() => ['grid', 'infusionGrid', 'transfusionGrid', 'infusion', 'transfusion'].includes(liveMenu.type));
+
+const menuSections = computed(() => {
+  const type = liveMenu.type;
+  const target = liveMenu.target;
+  const sections = [];
+
+  if (['medication', 'infusion', 'transfusion'].includes(type) && target) {
+    sections.push({ key: 'edit-line' }, { key: 'continue-line' }, { key: 'delete-line' });
+  }
+
+  const fluidEntries = [
+    { key: 'fluid-infusion', show: ['grid', 'infusionGrid', 'infusion'].includes(type) },
+    { key: 'fluid-transfusion', show: ['grid', 'transfusionGrid', 'transfusion'].includes(type) },
+  ];
+  const drugEntries = [
+    { key: 'drug-iv', show: ['grid', 'drugGrid', 'medication'].includes(type) },
+    { key: 'drug-local', show: ['grid', 'drugGrid', 'medication'].includes(type) },
+    { key: 'drug-recent', show: true },
+  ];
+  const vitalEntries = [
+    { key: 'vital-add', show: isGridMenu.value },
+    { key: 'vital-batch', show: isGridMenu.value },
+    { key: 'vital-list', show: isGridMenu.value },
+    { key: 'vital-observe', show: isGridMenu.value },
+  ];
+  const outputEntries = [
+    { key: 'output-add', show: isGridMenu.value || type === 'balance' },
+    { key: 'output-list', show: isGridMenu.value || type === 'balance' },
+  ];
+  const listEntries = [
+    { key: 'medication-list', show: type === 'medication' || type === 'drugGrid' },
+    { key: 'infusion-list', show: type === 'infusion' || type === 'infusionGrid' },
+    { key: 'transfusion-list', show: type === 'transfusion' || type === 'transfusionGrid' },
+  ];
+
+  const groups = {
+    infusion: [fluidEntries, vitalEntries, drugEntries, outputEntries, listEntries],
+    infusionGrid: [fluidEntries, vitalEntries, drugEntries, outputEntries, listEntries],
+    transfusion: [[fluidEntries[1], fluidEntries[0]], vitalEntries, drugEntries, outputEntries, listEntries],
+    transfusionGrid: [[fluidEntries[1], fluidEntries[0]], vitalEntries, drugEntries, outputEntries, listEntries],
+    medication: [drugEntries, fluidEntries, vitalEntries, outputEntries, listEntries],
+    drugGrid: [drugEntries, fluidEntries, vitalEntries, outputEntries, listEntries],
+    monitor: [vitalEntries, drugEntries, fluidEntries, outputEntries, listEntries],
+    chart: [vitalEntries, drugEntries, fluidEntries, outputEntries, listEntries],
+    balance: [outputEntries, vitalEntries, drugEntries, fluidEntries, listEntries],
+    grid: [vitalEntries, drugEntries, fluidEntries, outputEntries, listEntries],
+  };
+
+  (groups[type] || groups.grid).forEach((group) => {
+    group.filter((entry) => entry.show).forEach((entry) => sections.push(entry));
+  });
+
+  return sections;
+});
 const unselectedMonitorItems = computed(() => monitorOptions.filter((item) => !selectedMonitorItems.value.includes(item)));
 const dataListTitle = computed(() => dataTabs.find((tab) => tab.key === activeDataList.value)?.label + '数据列表');
-const filteredMedicationCatalog = computed(() => {
-  const keyword = medicationSearch.value.trim().toLowerCase();
-  if (!keyword) return medicationCatalog;
-  return medicationCatalog.filter((item) => item.name.toLowerCase().includes(keyword));
-});
 
 const sheetStart = computed(() => {
   const candidates = [props.record.anesthesia.inRoomTime, props.record.anesthesia.recordStart, props.record.startedAt, props.record.vitals?.[0]?.time, '11:00'].filter(Boolean);
@@ -771,16 +840,36 @@ const sheetStart = computed(() => {
   return minutesToClock(Math.floor((first ?? 660) / 30) * 30);
 });
 const sheetEnd = computed(() => {
-  const start = clockToMinutes(sheetStart.value) ?? 660;
-  const candidates = [props.record.anesthesia.outRoomTime, props.record.anesthesia.anesthesiaEnd, props.record.anesthesia.surgeryEnd, props.record.vitals?.at(-1)?.time]
-    .filter(Boolean)
-    .map((time) => clockToMinutes(time))
-    .filter((value) => value !== null);
-  return minutesToClock(Math.ceil(Math.max(start + 210, ...candidates) / 30) * 30);
+  const record = props.record;
+  const candidates = [
+    record.anesthesia.outRoomTime,
+    record.anesthesia.anesthesiaEnd,
+    record.anesthesia.surgeryEnd,
+    (record.vitals || []).map((row) => row.time),
+    (record.medications || []).flatMap((row) => [row.time, row.endTime]),
+    (record.infusions || []).flatMap((row) => [row.time, row.endTime]),
+    (record.transfusions || []).flatMap((row) => [row.time, row.endTime]),
+    (record.outputs || []).map((row) => row.time),
+    (record.events || []).map((row) => row.time),
+  ];
+  return calculateLiveSheetEnd(sheetStart.value, candidates, 210, 30);
 });
 const timeScale = computed(() => buildLiveTimeScale(sheetStart.value, sheetEnd.value, 5, 30));
+const sheetGridStyle = computed(() => ({
+  '--minor-columns': Math.max(1, timeScale.value.totalMinutes / timeScale.value.minorInterval),
+  '--major-columns': Math.max(1, timeScale.value.totalMinutes / timeScale.value.majorInterval),
+}));
 const visibleVitals = computed(() => props.record.vitals || []);
-const vitalTicks = computed(() => [14, 16, 18, 20, 22, 24, 26, 28, 30].map((value) => ({ value, bottom: ((value - 14) / 16) * 100 })));
+const vitalTicks = computed(() => [40, 60, 80, 100, 120, 140, 160, 180, 200].map((value) => ({ value, bottom: ((value - 40) / 160) * 100 })));
+const chartSvgRef = ref(null);
+const dragHint = reactive({ visible: false, y: 0, left: 0, top: 0, label: '' });
+const VITAL_FIELD_SPECS = {
+  sbp: { label: '收缩压', unit: 'mmHg', toY: (v) => 300 - ((v - 40) / 160) * 300, fromY: (y) => Math.round(40 + ((300 - y) / 300) * 160), min: 40, max: 220, decimals: 0 },
+  dbp: { label: '舒张压', unit: 'mmHg', toY: (v) => 300 - ((v - 40) / 160) * 300, fromY: (y) => Math.round(40 + ((300 - y) / 300) * 160), min: 20, max: 180, decimals: 0 },
+  hr:  { label: '脉搏', unit: '次/分', toY: (v) => 300 - ((v - 40) / 160) * 300, fromY: (y) => Math.round(40 + ((300 - y) / 300) * 160), min: 30, max: 220, decimals: 0 },
+  spo2:{ label: 'SpO₂', unit: '%', toY: (v) => 300 - ((v - 40) / 60) * 300, fromY: (y) => Math.round(40 + ((300 - y) / 300) * 60), min: 50, max: 100, decimals: 0 },
+  temp:{ label: '体温', unit: '°C', toY: (v) => 300 - ((v - 34) / 6) * 300, fromY: (y) => Math.round((34 + ((300 - y) / 300) * 6) * 10) / 10, min: 33, max: 41, decimals: 1 },
+};
 const medicationRows = computed(() =>
   (props.record.medications || []).slice(0, 7).map((med, index) => ({
     ...med,
@@ -803,25 +892,36 @@ const infusionRows = computed(() =>
   })),
 );
 const transfusionRows = computed(() =>
-  (props.record.transfusions || []).slice(0, 3).map((item, index) => ({
-    ...item,
-    source: item,
-    name: item.product || '输血',
-    index,
-    label: `${item.product || ''} ${item.volume || ''}ml`,
-  })),
+  (props.record.transfusions || []).map((item, index) => {
+    const dictUnit = bloodProductOptions.find((o) => o.product === item.product)?.unit;
+    const unit = dictUnit || item.unit || '';
+    return {
+      ...item,
+      source: item,
+      name: item.product || '输血',
+      index,
+      label: `${item.product || ''} ${item.volume || ''}${unit}`,
+    };
+  }),
 );
+const transfusionBandStyle = computed(() => ({
+  minHeight: `${Math.max(66, transfusionRows.value.length * 22 + 12)}px`,
+}));
 const monitorCells = computed(() =>
   visibleVitals.value.flatMap((row) =>
     selectedMonitorItems.value
       .map((metric, index) => {
         const value = monitorValue(row, metric);
         if (value === '' || value === undefined || value === null) return null;
-        return { key: `${row.id}-${metric}`, row, metric, value, time: row.time, top: `${7 + index * 22}px`, abnormal: metric === 'SpO2' && Number(value) < 95 };
+        return { key: `${row.id}-${metric}`, row, metric, value, time: row.time, top: `${6 + index * 22}px`, abnormal: metric === 'SpO2' && Number(value) < 95 };
       })
       .filter(Boolean),
   ),
 );
+const monitorBandStyle = computed(() => ({
+  '--monitor-rows': selectedMonitorItems.value.length,
+  minHeight: `${selectedMonitorItems.value.length * 22 + 6}px`,
+}));
 const statusEvents = computed(() => [
   { key: 'in', time: props.record.anesthesia.inRoomTime, symbol: '>', top: '6px' },
   { key: 'anes', time: props.record.anesthesia.anesthesiaStart, symbol: 'X', top: '6px' },
@@ -831,9 +931,10 @@ const statusEvents = computed(() => [
 ].filter((item) => item.time));
 const outputMarkers = computed(() =>
   (props.record.outputs || []).flatMap((row) => [
-    row.urine ? { key: `${row.id}-urine`, time: row.time, value: row.urine, top: '29px' } : null,
-    row.bloodLoss ? { key: `${row.id}-blood`, time: row.time, value: row.bloodLoss, top: '51px' } : null,
-    row.other ? { key: `${row.id}-other`, time: row.time, value: row.other, top: '73px' } : null,
+    row.urine ? { key: `${row.id}-urine`, time: row.time, value: row.urine, top: '6px' } : null,
+    row.bloodLoss ? { key: `${row.id}-blood`, time: row.time, value: row.bloodLoss, top: '28px' } : null,
+    row.drainage ? { key: `${row.id}-drainage`, time: row.time, value: row.drainage, top: '50px' } : null,
+    row.other ? { key: `${row.id}-other`, time: row.time, value: row.other, top: '72px' } : null,
   ].filter(Boolean)),
 );
 const highAlertMeds = computed(() => (props.record.medications || []).filter((med) => med.highAlert).slice(0, 4));
@@ -976,32 +1077,73 @@ function closeLiveMenu() {
 function openMonitorEdit(event, row) {
   openLiveMenu(event, 'monitor', row);
   monitorForm.time = row.time || nowTime();
+  monitorForm.batch = false;
+  monitorForm.editingId = row.id;
   selectedMonitorItems.value.forEach((item) => {
     ensureMonitorDefault(item);
-    monitorValues[item] = monitorValue(row, item) || monitorMeta(item).default;
+    const key = monitorMeta(item).key;
+    const hasExplicit = key in row || (row.monitorExtras && item in row.monitorExtras);
+    monitorValues[item] = hasExplicit ? monitorValue(row, item) : monitorMeta(item).default;
   });
   showMonitorDialog.value = true;
 }
 
 function openMonitorDialog(batch) {
   monitorForm.batch = batch;
+  monitorForm.editingId = '';
   if (!monitorForm.time) monitorForm.time = nowTime();
   monitorForm.endTime = addMinutes(monitorForm.time, 30);
-  selectedMonitorItems.value.forEach(ensureMonitorDefault);
+  // 新建/批量新建：默认全部留空，需通过"自动获取监护数据"按钮模拟带入
+  selectedMonitorItems.value.forEach((item) => { monitorValues[item] = ''; });
   showMonitorDialog.value = true;
   closeLiveMenu();
+}
+
+// 模拟自动获取监护数据：把字典默认值填入当前选中的监护项目，仅前端模拟，不连接真实设备
+function fetchMonitorMock() {
+  selectedMonitorItems.value.forEach((item) => {
+    const meta = monitorMeta(item);
+    let value = meta.default;
+    if (typeof value === 'number') {
+      const jitter = Math.round((Math.random() - 0.5) * Math.max(2, value * 0.05));
+      value = meta.type === 'number' ? Number((value + jitter).toFixed(meta.default % 1 ? 1 : 0)) : value;
+    }
+    monitorValues[item] = value;
+  });
 }
 
 function saveMonitorRows() {
   const start = clockToMinutes(monitorForm.time);
   const end = monitorForm.batch ? clockToMinutes(monitorForm.endTime) : start;
   if (start === null || end === null) return;
+  const missingRequired = selectedMonitorItems.value.filter((item) => {
+    const meta = monitorMeta(item);
+    if (!meta.required) return false;
+    const value = monitorValues[item];
+    return value === '' || value === undefined || value === null;
+  });
+  if (missingRequired.length) {
+    window.alert(`${missingRequired.join('、')} 不能为空`);
+    return;
+  }
+  if (!monitorForm.batch && monitorForm.editingId) {
+    const existing = props.record.vitals.find((row) => row.id === monitorForm.editingId);
+    if (existing) {
+      existing.time = monitorForm.time;
+      selectedMonitorItems.value.forEach((item) => setMonitorValue(existing, item, monitorValues[item]));
+      showMonitorDialog.value = false;
+      monitorForm.editingId = '';
+      showSavedBadgeAtCenter(monitorForm.time);
+      return;
+    }
+  }
   for (let minute = start; minute <= end; minute += monitorForm.batch ? Number(monitorForm.interval || 10) : 9999) {
-    const row = { id: uniqueId('vital'), time: minutesToClock(minute), sbp: '', dbp: '', hr: '', rr: '', spo2: '', etco2: '', temp: '', bis: '', source: '手工录入', remark: '右键新增监测', abnormalHandled: {} };
+    const row = { id: uniqueId('vital'), time: minutesToClock(minute), sbp: '', dbp: '', hr: '', rr: '', spo2: '', etco2: '', temp: '', bis: '', ecg: '', ventilation: '', source: '手工录入', remark: monitorForm.batch ? '右键批量录入' : '右键新增', abnormalHandled: {} };
     selectedMonitorItems.value.forEach((item) => setMonitorValue(row, item, monitorValues[item]));
     props.record.vitals.push(row);
     if (!monitorForm.batch) break;
   }
+  monitorForm.editingId = '';
   showMonitorDialog.value = false;
   showSavedBadgeAtCenter(`${monitorForm.time}${monitorForm.batch ? ' 批量' : ''}`);
 }
@@ -1011,7 +1153,6 @@ function openLineEditor() {
   if (!target) return;
   if (liveMenu.type === 'infusion') return openInfusionEditor(target);
   if (liveMenu.type === 'transfusion') return openTransfusionEditor(target);
-  if (liveMenu.type === 'medication') return openMedicationManager(target);
   lineForm.kind = '用药';
   lineForm.id = target.id;
   lineForm.name = target.name || '';
@@ -1025,91 +1166,48 @@ function openLineEditor() {
   closeLiveMenu();
 }
 
-function selectMedicationCatalog(drug) {
-  medicationForm.name = drug.name;
-  medicationForm.unit = drug.unit || medicationForm.unit;
-  medicationForm.dose = drug.dose ?? medicationForm.dose;
-  medicationForm.route = drug.route || medicationForm.route;
-}
-
-function openMedicationManager(row = null, preset = {}) {
-  const name = preset.name || row?.name || medicationCatalog[0].name;
-  const catalog = medicationCatalog.find((item) => item.name === name) || {};
-  const continuous = Boolean(preset.continuous ?? (row ? isContinuousDrug(row) : false));
-  const time = row?.time || monitorForm.time || nowTime();
-  Object.assign(medicationForm, {
-    id: row?.id || '',
-    mode: continuous ? 'continuous' : 'single',
-    name,
-    route: row?.route || preset.route || catalog.route || (continuous ? '泵入' : '静脉注射'),
-    dose: row?.dose ?? preset.dose ?? catalog.dose ?? (continuous ? 2 : 1),
-    unit: row?.unit || preset.unit || catalog.unit || (continuous ? 'ml/h' : 'ml'),
-    quantity: row?.quantity ?? 0,
-    date: preset.date || '2026-05-18',
-    time,
-    endTime: row?.endTime || (continuous ? addMinutes(time, LIVE_TIME_STEP_MINUTES) : ''),
-  });
-  showMedicationManager.value = true;
-  closeLiveMenu();
-}
-
-function editMedicationFromManager(row) {
-  openMedicationManager(row);
-}
-
-function saveMedicationForm() {
-  const payload = normalizeMedicationEditorPayload({
-    id: medicationForm.id,
-    name: medicationForm.name,
-    time: medicationForm.time,
-    endTime: medicationForm.mode === 'continuous' ? medicationForm.endTime : '',
-    dose: medicationForm.dose,
-    unit: medicationForm.unit,
-    route: medicationForm.route,
-    quantity: medicationForm.quantity,
-    continuous: medicationForm.mode === 'continuous',
-  });
-  const row = props.record.medications.find((item) => item.id === payload.id);
-  const saved = {
-    ...payload,
-    id: payload.id || uniqueId('med'),
-    executor: row?.executor || props.record.anesthesia.anesthesiologist || '',
-    checker: row?.checker || props.record.anesthesia.circulatingNurse || '',
-    remark: row?.remark || '麻醉用药维护',
-  };
-  if (row) Object.assign(row, saved);
-  else props.record.medications.push(saved);
-  medicationForm.id = saved.id;
-  showSavedBadgeAtCenter(saved.endTime || saved.time);
-}
-
 function openInfusionEditor(row) {
   lineForm.kind = '输液';
   lineForm.id = row?.id || '';
-  lineForm.name = row?.name || '乳酸钠林格液';
-  lineForm.time = row?.time || monitorForm.time || nowTime();
-  lineForm.endTime = row?.endTime || addMinutes(lineForm.time, 60);
-  lineForm.amount = row?.volume || 500;
-  lineForm.unit = row?.spec || '500ml';
+  const matched = row?.name && infusionCatalog.some((item) => item.name === row.name);
+  lineForm.name = matched ? row.name : (row?.name ? '__custom__' : infusionCatalog[0].name);
+  lineForm.customName = matched ? '' : (row?.name || '');
+  lineForm.time = row?.time || nowTime();
+  lineForm.endTime = row?.endTime ?? '';
+  lineForm.amount = row?.volume ?? infusionCatalog[0].volume;
+  lineForm.unit = row?.spec || infusionCatalog[0].spec;
   lineForm.route = row?.executor || props.record.anesthesia.circulatingNurse || '';
+  lineFormError.value = '';
   showLineEditor.value = true;
   closeLiveMenu();
+}
+
+function syncLineInfusionCatalog() {
+  const item = infusionCatalog.find((entry) => entry.name === lineForm.name);
+  if (item) {
+    lineForm.unit = item.spec;
+    lineForm.amount = item.volume;
+  }
 }
 
 function openTransfusionEditor(row) {
   lineForm.kind = '输血';
   lineForm.id = row?.id || '';
   lineForm.name = row?.product || bloodProductOptions[2].product;
-  lineForm.time = row?.time || monitorForm.time || nowTime();
+  lineForm.time = row?.time || nowTime();
   lineForm.endTime = row?.endTime || '';
+  lineForm.customName = '';
   syncLineBloodProduct();
   lineForm.amount = row?.volume || bloodProductOptions.find((item) => item.product === lineForm.name)?.defaultVolume || 1;
   lineForm.unit = row?.bloodType || '';
   lineForm.volumeUnit = row?.unit || bloodProductOptions.find((item) => item.product === lineForm.name)?.unit || 'U';
   lineForm.bloodType = row?.bloodType || '';
   lineForm.bagNo = row?.bagNo || '';
-  lineForm.doubleCheck = Boolean(row?.doubleCheck);
+  lineForm.anesthesiaConfirm = Boolean(row?.anesthesiaConfirm ?? row?.doubleCheck);
+  lineForm.circulatingConfirm = Boolean(row?.circulatingConfirm ?? row?.doubleCheck);
+  lineForm.doubleCheck = lineForm.anesthesiaConfirm && lineForm.circulatingConfirm;
   lineForm.reaction = row?.reaction || '无';
+  lineFormError.value = '';
   showLineEditor.value = true;
   closeLiveMenu();
 }
@@ -1127,6 +1225,30 @@ function syncBloodProductRow(row) {
 }
 
 function saveLineEditor() {
+  lineFormError.value = '';
+  const startMinutes = clockToMinutes(lineForm.time);
+  if (startMinutes === null) {
+    lineFormError.value = '请填写有效的开始时间';
+    return;
+  }
+  if (lineForm.endTime) {
+    const endMinutes = clockToMinutes(lineForm.endTime);
+    if (endMinutes === null) {
+      lineFormError.value = '请填写有效的结束时间';
+      return;
+    }
+    if (endMinutes < startMinutes) {
+      lineFormError.value = '结束时间不能早于开始时间';
+      return;
+    }
+  } else if (lineForm.kind === '输血' || (lineForm.kind === '用药' && lineForm.continuous)) {
+    lineFormError.value = '请填写结束时间';
+    return;
+  }
+  if (lineForm.kind === '输血' && (!lineForm.anesthesiaConfirm || !lineForm.circulatingConfirm)) {
+    lineFormError.value = '输血需麻醉医师与巡回护士双人核对';
+    return;
+  }
   if (lineForm.kind === '用药') {
     const row = props.record.medications.find((item) => item.id === lineForm.id);
     const payload = {
@@ -1149,8 +1271,11 @@ function saveLineEditor() {
     else props.record.medications.push(payload);
   }
   if (lineForm.kind === '输液') {
+    const finalName = lineForm.name === '__custom__'
+      ? (lineForm.customName?.trim() || '自定义输液')
+      : lineForm.name;
     const row = props.record.infusions.find((item) => item.id === lineForm.id);
-    const payload = { id: lineForm.id || uniqueId('infusion'), time: lineForm.time, endTime: lineForm.endTime, name: lineForm.name, spec: lineForm.unit, volume: Number(lineForm.amount) || 0, executor: lineForm.route };
+    const payload = { id: lineForm.id || uniqueId('infusion'), time: lineForm.time, endTime: lineForm.endTime || '', name: finalName, spec: lineForm.unit, volume: Number(lineForm.amount) || 0, executor: lineForm.route };
     if (row) Object.assign(row, payload);
     else props.record.infusions.push(payload);
   }
@@ -1166,7 +1291,8 @@ function saveLineEditor() {
         bloodType: lineForm.bloodType || lineForm.unit,
         volume: lineForm.amount,
         unit: lineForm.volumeUnit,
-        doubleCheck: lineForm.doubleCheck,
+        anesthesiaConfirm: lineForm.anesthesiaConfirm,
+        circulatingConfirm: lineForm.circulatingConfirm,
         reaction: lineForm.reaction,
       }),
       id: lineForm.id || uniqueId('transfusion'),
@@ -1195,8 +1321,70 @@ function deleteLine() {
   closeLiveMenu();
 }
 
-function addMenuDrug(name, continuous) {
-  openMedicationManager(null, { name, continuous });
+function addQuickDrug(name, continuous) {
+  if (props.readOnly) return;
+  // 改为弹出简易用药编辑器（lineForm 用药模式）：仅暴露关键字段，不展示药品字典维护界面
+  const catalog = medicationCatalog.find((item) => item.name === name) || {};
+  const time = monitorForm.time || nowTime();
+  Object.assign(lineForm, {
+    kind: '用药',
+    id: '',
+    name,
+    customName: '',
+    time,
+    endTime: continuous ? addMinutes(time, 30) : '',
+    amount: catalog.dose ?? '',
+    unit: catalog.unit || (continuous ? 'ml/h' : 'mg'),
+    route: catalog.route || (continuous ? '泵入' : '静脉注射'),
+    continuous: Boolean(continuous),
+  });
+  lineFormError.value = '';
+  showLineEditor.value = true;
+  closeLiveMenu();
+}
+
+function addMenuInfusion(item) {
+  if (props.readOnly) return;
+  const time = nowTime();
+  Object.assign(lineForm, {
+    kind: '输液',
+    id: '',
+    name: item.name,
+    customName: '',
+    time,
+    endTime: '',
+    amount: item.volume,
+    unit: item.spec,
+    route: props.record.anesthesia.circulatingNurse || '',
+  });
+  lineFormError.value = '';
+  showLineEditor.value = true;
+  closeLiveMenu();
+}
+
+function addMenuTransfusion(item) {
+  if (props.readOnly) return;
+  const time = nowTime();
+  Object.assign(lineForm, {
+    kind: '输血',
+    id: '',
+    name: item.product,
+    customName: '',
+    time,
+    endTime: addMinutes(time, 60),
+    amount: item.defaultVolume,
+    unit: '',
+    volumeUnit: item.unit,
+    bloodType: '',
+    bagNo: '',
+    anesthesiaConfirm: false,
+    circulatingConfirm: false,
+    doubleCheck: false,
+    reaction: '无',
+  });
+  lineFormError.value = '';
+  showLineEditor.value = true;
+  closeLiveMenu();
 }
 
 function openOutputEditor(row) {
@@ -1218,6 +1406,26 @@ function openDataList(category) {
   activeDataList.value = category || 'vitals';
   showDataModal.value = true;
   closeLiveMenu();
+}
+
+// 从用药数据列表行触发的编辑入口：复用 lineForm 简易编辑器
+function openLineEditFromList(row) {
+  if (props.readOnly) return;
+  const continuous = isContinuousDrug(row);
+  Object.assign(lineForm, {
+    kind: '用药',
+    id: row.id,
+    name: row.name || '',
+    customName: '',
+    time: row.time || nowTime(),
+    endTime: continuous ? (row.endTime || addMinutes(row.time || nowTime(), 30)) : '',
+    amount: row.dose ?? '',
+    unit: row.unit || 'mg',
+    route: row.route || '静脉注射',
+    continuous,
+  });
+  lineFormError.value = '';
+  showLineEditor.value = true;
 }
 
 function deleteRow(rows, id) {
@@ -1245,14 +1453,15 @@ function showSavedBadgeAtCenter(time) {
 }
 
 function chartPoints(field) {
+  const spec = VITAL_FIELD_SPECS[field];
+  if (!spec) return [];
   return visibleVitals.value
     .filter((row) => row.time && row[field] !== '' && row[field] !== undefined && row[field] !== null)
     .map((row) => {
       const x = timeToPercent(row.time, sheetStart.value, sheetEnd.value) * 10;
       const value = Number(row[field]);
-      const scaled = field === 'spo2' ? value / 4 : value / 5;
-      const y = 300 - Math.max(0, Math.min(300, ((scaled - 14) / 16) * 300));
-      return { key: `${row.id}-${field}`, x: Number(x.toFixed(1)), y: Number(y.toFixed(1)) };
+      const y = Math.max(0, Math.min(300, spec.toY(value)));
+      return { key: `${row.id}-${field}`, x: Number(x.toFixed(1)), y: Number(y.toFixed(1)), row, value, field };
     });
 }
 
@@ -1262,5 +1471,56 @@ function chartLine(field) {
 
 function trianglePath(x, y, up) {
   return up ? `M${x},${y - 6} L${x - 5},${y + 5} L${x + 5},${y + 5} Z` : `M${x},${y + 6} L${x - 5},${y - 5} L${x + 5},${y - 5} Z`;
+}
+
+function diamondPath(x, y) {
+  return `M${x},${y - 5} L${x + 5},${y} L${x},${y + 5} L${x - 5},${y} Z`;
+}
+
+function starPath(x, y) {
+  const r1 = 6, r2 = 2.5;
+  let d = '';
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 === 0 ? r1 : r2;
+    const a = (-90 + i * 36) * Math.PI / 180;
+    d += `${i === 0 ? 'M' : 'L'}${(x + r * Math.cos(a)).toFixed(2)},${(y + r * Math.sin(a)).toFixed(2)} `;
+  }
+  return d + 'Z';
+}
+
+function startDragPoint(event, point) {
+  if (props.readOnly) return;
+  const spec = VITAL_FIELD_SPECS[point.field];
+  if (!spec) return;
+  const svg = chartSvgRef.value;
+  if (!svg) return;
+  event.preventDefault();
+  try { event.currentTarget.setPointerCapture?.(event.pointerId); } catch (_) { /* ignore */ }
+  const rect = svg.getBoundingClientRect();
+  const apply = (clientY) => {
+    const relY = Math.max(0, Math.min(rect.height, clientY - rect.top));
+    const viewY = (relY / rect.height) * 300;
+    let nextValue = spec.fromY(viewY);
+    nextValue = Math.max(spec.min, Math.min(spec.max, nextValue));
+    if (spec.decimals === 0) nextValue = Math.round(nextValue);
+    else nextValue = Math.round(nextValue * 10) / 10;
+    point.row[point.field] = nextValue;
+    dragHint.visible = true;
+    dragHint.y = viewY;
+    dragHint.left = rect.left - svg.parentElement.getBoundingClientRect().left + 8;
+    dragHint.top = relY - 18;
+    dragHint.label = `${spec.label} ${nextValue}${spec.unit}`;
+  };
+  apply(event.clientY);
+  const onMove = (e) => apply(e.clientY);
+  const onUp = () => {
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
+    window.setTimeout(() => { dragHint.visible = false; }, 800);
+  };
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
 }
 </script>

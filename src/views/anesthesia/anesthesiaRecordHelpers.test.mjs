@@ -180,6 +180,7 @@ describe('live anesthesia sheet timeline helpers', () => {
       [
         ['血小板', '治疗量'],
         ['白细胞', '袋'],
+        ['悬浮红细胞', 'U'],
         ['红细胞', 'U'],
         ['冷沉淀', 'U'],
       ],
@@ -196,6 +197,8 @@ describe('live anesthesia sheet timeline helpers', () => {
         bloodType: 'A+',
         volume: 1,
         unit: '治疗量',
+        anesthesiaConfirm: false,
+        circulatingConfirm: false,
         doubleCheck: false,
         reaction: '无',
       },
