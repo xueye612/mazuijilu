@@ -642,6 +642,7 @@ textarea:focus {
     linear-gradient(to right, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
     linear-gradient(to right, rgba(148, 163, 184, 0.7) 1px, transparent 1px);
   background-size: calc(100% / var(--major-columns, 7)) 100%, calc(100% / var(--minor-columns, 42)) 100%;
+  background-position: -1px 0;
 }
 
 .band-medication {
@@ -758,6 +759,7 @@ textarea:focus {
     linear-gradient(to right, rgba(148, 163, 184, 0.85) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(148, 163, 184, 0.85) 1px, transparent 1px);
   background-size: calc(100% / var(--major-columns, 7)) 100%, calc(100% / var(--minor-columns, 42)) 100%, 100% 22px;
+  background-position: -1px -1px;
 }
 
 .spo2-text {
@@ -949,6 +951,7 @@ textarea:focus {
     linear-gradient(to right, rgba(148, 163, 184, 0.7) 1px, transparent 1px),
     linear-gradient(to bottom, #111 1px, transparent 1px);
   background-size: calc(100% / var(--major-columns, 7)) 100%, calc(100% / var(--minor-columns, 42)) 100%, 100% 22px;
+  background-position: -1px -1px;
 }
 
 .status-marker {
@@ -2848,11 +2851,6 @@ textarea:focus {
     font-size: 9pt;
   }
 
-  .band-labels div:first-child,
-  .status-labels div:first-child {
-    border-top: 0.6px solid #111;
-  }
-
   .band-labels .screen-band-label {
     display: none !important;
   }
@@ -2909,6 +2907,11 @@ textarea:focus {
     border-left: 1px solid #111;
   }
 
+  .print-grid-lines span:first-child,
+  .print-grid-lines span:last-child {
+    border-left: none !important;
+  }
+
   .print-row-lines span,
   .print-chart-horizontal-lines span {
     left: 0;
@@ -2920,6 +2923,13 @@ textarea:focus {
   .print-row-lines span.major,
   .print-chart-horizontal-lines span.major {
     border-top: 1px solid #111;
+  }
+
+  .print-row-lines span:first-child,
+  .print-row-lines span:last-child,
+  .print-chart-horizontal-lines span:first-child,
+  .print-chart-horizontal-lines span:last-child {
+    border-top: none !important;
   }
 
   .band-medication {
@@ -3146,7 +3156,12 @@ textarea:focus {
     text-overflow: ellipsis;
   }
 
-  .print-summary-grid > div:nth-child(5n) {
+  .print-summary-grid > div:nth-child(5),
+  .print-summary-grid > div:nth-child(10),
+  .print-summary-grid > div:nth-child(15),
+  .print-summary-grid > div:nth-child(20),
+  .print-summary-grid > div:nth-child(24),
+  .print-summary-grid > div:nth-child(26) {
     border-right: 0;
   }
 
@@ -3158,7 +3173,8 @@ textarea:focus {
     grid-column: span 4;
   }
 
-  .print-summary-grid > div:nth-last-child(-n + 5) {
+  .print-summary-grid > div:nth-child(25),
+  .print-summary-grid > div:nth-child(26) {
     border-bottom: 0;
   }
 
