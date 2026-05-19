@@ -2905,7 +2905,7 @@ textarea:focus {
   }
 
   .print-grid-lines span:first-child {
-    border-left: none !important;
+    display: none !important;
   }
 
   .print-row-lines span,
@@ -2922,8 +2922,13 @@ textarea:focus {
   }
 
   .print-row-lines span:first-child,
+  .print-row-lines span:last-child,
+  .print-chart-horizontal-lines span:last-child {
+    display: none !important;
+  }
+
   .print-chart-horizontal-lines span:first-child {
-    border-top: none !important;
+    display: none !important;
   }
 
   .band-medication {
