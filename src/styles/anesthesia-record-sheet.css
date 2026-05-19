@@ -639,10 +639,9 @@ textarea:focus {
   position: relative;
   min-height: 100%;
   background-image:
-    linear-gradient(to right, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
-    linear-gradient(to right, rgba(148, 163, 184, 0.7) 1px, transparent 1px);
+    linear-gradient(to left, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
+    linear-gradient(to left, rgba(148, 163, 184, 0.7) 1px, transparent 1px);
   background-size: calc(100% / var(--major-columns, 7)) 100%, calc(100% / var(--minor-columns, 42)) 100%;
-  background-position: -1px 0;
 }
 
 .band-medication {
@@ -755,11 +754,10 @@ textarea:focus {
 
 .monitor-grid {
   background-image:
-    linear-gradient(to right, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
-    linear-gradient(to right, rgba(148, 163, 184, 0.85) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(148, 163, 184, 0.85) 1px, transparent 1px);
+    linear-gradient(to left, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
+    linear-gradient(to left, rgba(148, 163, 184, 0.85) 1px, transparent 1px),
+    linear-gradient(to top, rgba(148, 163, 184, 0.85) 1px, transparent 1px);
   background-size: calc(100% / var(--major-columns, 7)) 100%, calc(100% / var(--minor-columns, 42)) 100%, 100% 22px;
-  background-position: -1px -1px;
 }
 
 .spo2-text {
@@ -947,11 +945,10 @@ textarea:focus {
   grid-column: 3;
   min-height: 110px;
   background-image:
-    linear-gradient(to right, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
-    linear-gradient(to right, rgba(148, 163, 184, 0.7) 1px, transparent 1px),
-    linear-gradient(to bottom, #111 1px, transparent 1px);
+    linear-gradient(to left, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
+    linear-gradient(to left, rgba(148, 163, 184, 0.7) 1px, transparent 1px),
+    linear-gradient(to top, #111 1px, transparent 1px);
   background-size: calc(100% / var(--major-columns, 7)) 100%, calc(100% / var(--minor-columns, 42)) 100%, 100% 22px;
-  background-position: -1px -1px;
 }
 
 .status-marker {
@@ -2907,8 +2904,7 @@ textarea:focus {
     border-left: 1px solid #111;
   }
 
-  .print-grid-lines span:first-child,
-  .print-grid-lines span:last-child {
+  .print-grid-lines span:first-child {
     border-left: none !important;
   }
 
@@ -2926,9 +2922,7 @@ textarea:focus {
   }
 
   .print-row-lines span:first-child,
-  .print-row-lines span:last-child,
-  .print-chart-horizontal-lines span:first-child,
-  .print-chart-horizontal-lines span:last-child {
+  .print-chart-horizontal-lines span:first-child {
     border-top: none !important;
   }
 
