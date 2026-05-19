@@ -80,7 +80,7 @@
                 {{ tick.label }}
               </span>
               <span
-                v-for="tick in timeScale.minorTicks"
+                v-for="tick in timeScale.minorTicks.slice(0, -1)"
                 :key="tick.time"
                 class="minor-tick"
                 :class="{ major: tick.isMajor }"
@@ -99,7 +99,7 @@
             <div class="band-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'drugGrid')">
               <div class="horizontal-lines"></div>
               <div class="print-grid-lines" aria-hidden="true">
-                <span v-for="tick in timeScale.minorTicks" :key="`med-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
+                <span v-for="tick in timeScale.minorTicks.slice(0, -1)" :key="`med-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
               </div>
               <div class="print-row-lines" aria-hidden="true">
                 <span v-for="line in printRowLines(9)" :key="`med-h-${line.key}`" :class="{ major: line.major }" :style="{ top: line.percent + '%' }"></span>
@@ -137,7 +137,7 @@
             <div class="band-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'infusionGrid')">
               <div class="horizontal-lines"></div>
               <div class="print-grid-lines" aria-hidden="true">
-                <span v-for="tick in timeScale.minorTicks" :key="`inf-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
+                <span v-for="tick in timeScale.minorTicks.slice(0, -1)" :key="`inf-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
               </div>
               <div class="print-row-lines" aria-hidden="true">
                 <span v-for="line in printRowLines(printInfusionRowCount)" :key="`inf-h-${line.key}`" :class="{ major: line.major }" :style="{ top: line.percent + '%' }"></span>
@@ -167,7 +167,7 @@
             <div class="band-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'transfusionGrid')">
               <div class="horizontal-lines"></div>
               <div class="print-grid-lines" aria-hidden="true">
-                <span v-for="tick in timeScale.minorTicks" :key="`tr-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
+                <span v-for="tick in timeScale.minorTicks.slice(0, -1)" :key="`tr-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
               </div>
               <div class="print-row-lines" aria-hidden="true">
                 <span v-for="line in printRowLines(printTransfusionRowCount)" :key="`tr-h-${line.key}`" :class="{ major: line.major }" :style="{ top: line.percent + '%' }"></span>
@@ -192,7 +192,7 @@
             </div>
             <div class="band-grid monitor-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'monitor')">
               <div class="print-grid-lines" aria-hidden="true">
-                <span v-for="tick in timeScale.minorTicks" :key="`mon-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
+                <span v-for="tick in timeScale.minorTicks.slice(0, -1)" :key="`mon-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
               </div>
               <div class="print-row-lines" aria-hidden="true">
                 <span v-for="line in printRowLines(printMonitorRowCount)" :key="`mon-h-${line.key}`" :class="{ major: line.major }" :style="{ top: line.percent + '%' }"></span>
@@ -218,7 +218,7 @@
             </div>
             <div class="band-grid status-grid">
               <div class="print-grid-lines" aria-hidden="true">
-                <span v-for="tick in timeScale.minorTicks" :key="`surgery-status-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
+                <span v-for="tick in timeScale.minorTicks.slice(0, -1)" :key="`surgery-status-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
               </div>
               <span v-for="event in statusEvents" :key="`print-${event.key}`" class="status-marker" :style="{ left: timeLeft(event.time), top: event.top }">
                 {{ event.symbol }}
@@ -241,7 +241,7 @@
             </div>
             <div class="chart-grid-wrap">
               <div class="print-grid-lines" aria-hidden="true">
-                <span v-for="tick in timeScale.minorTicks" :key="`chart-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
+                <span v-for="tick in timeScale.minorTicks.slice(0, -1)" :key="`chart-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
               </div>
               <div class="print-chart-horizontal-lines" aria-hidden="true">
                 <span v-for="line in printVitalGridLines" :key="`chart-h-${line.value}`" class="major" :style="{ top: line.top + '%' }"></span>
@@ -330,7 +330,7 @@
             </div>
             <div class="band-grid status-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'balance')">
               <div class="print-grid-lines" aria-hidden="true">
-                <span v-for="tick in timeScale.minorTicks" :key="`status-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
+                <span v-for="tick in timeScale.minorTicks.slice(0, -1)" :key="`status-v-${tick.time}`" :class="{ major: tick.isMajor }" :style="{ left: tick.percent + '%' }"></span>
               </div>
               <div class="print-row-lines" aria-hidden="true">
                 <span v-for="line in printRowLines(5)" :key="`status-h-${line.key}`" :class="{ major: line.major }" :style="{ top: line.percent + '%' }"></span>
@@ -1110,7 +1110,7 @@ const monitorCells = computed(() =>
 const monitorBandStyle = computed(() => ({
   '--monitor-rows': selectedMonitorItems.value.length,
   '--print-rows': printMonitorRowCount.value,
-  minHeight: `${selectedMonitorItems.value.length * 22 + 6}px`,
+  minHeight: `${selectedMonitorItems.value.length * 22}px`,
 }));
 const statusEvents = computed(() => [
   { key: 'in', time: props.record.anesthesia.inRoomTime, symbol: '>', top: '6px' },

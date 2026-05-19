@@ -535,7 +535,7 @@ textarea:focus {
   width: 100%;
   overflow-x: hidden;
   overflow-y: auto;
-  border: 1px solid #2f3b4a;
+  border: 1px solid #111;
   background: #fff;
 }
 
@@ -566,7 +566,6 @@ textarea:focus {
   position: relative;
   overflow: visible;
   background: #fff;
-  border-right: 1px solid #111;
 }
 
 .major-tick-label {
@@ -641,7 +640,6 @@ textarea:focus {
 .chart-grid-wrap {
   position: relative;
   min-height: 100%;
-  border-right: 1px solid #111;
   background-image:
     linear-gradient(to left, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
     linear-gradient(to left, rgba(148, 163, 184, 0.7) 1px, transparent 1px);
@@ -929,7 +927,7 @@ textarea:focus {
 }
 
 .band-status {
-  min-height: 112px;
+  min-height: 110px;
   grid-template-columns: var(--live-sheet-side-width) calc(var(--live-sheet-left-width) - var(--live-sheet-side-width)) 1fr;
 }
 
