@@ -614,6 +614,7 @@
             <input v-else v-model="monitorValues[item]" :type="monitorMeta(item).type || 'text'" />
             <span>{{ monitorMeta(item).unit }}</span>
           </label>
+          <p v-if="monitorFormError" class="form-error">{{ monitorFormError }}</p>
         </div>
         <footer>
           <button class="btn small primary" @click="saveMonitorRows">保存</button>
@@ -787,7 +788,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue';
+import { computed, onUnmounted, reactive, ref } from 'vue';
 import {
   buildLiveTimeScale,
   bloodProductOptions,
@@ -826,6 +827,7 @@ const selectedMonitorItems = ref(['SpO2', 'ECG', '收缩压', '舒张压', '脉�
 const monitorValues = reactive({});
 const lineForm = reactive({ kind: '用药', id: '', name: '', customName: '', time: '', endTime: '', amount: '', unit: '', route: '', bagNo: '', bloodType: '', volumeUnit: '', doubleCheck: false, anesthesiaConfirm: false, circulatingConfirm: false, reaction: '无', continuous: false });
 const lineFormError = ref('');
+const monitorFormError = ref('');
 const outputForm = reactive({ id: '', time: '', urine: 0, bloodLoss: 0, drainage: 0, other: 0, remark: '' });
 const monitorForm = reactive({ batch: false, date: '2026-05-18', time: '11:06', endTime: '11:36', interval: 10, editingId: '' });
 
@@ -989,6 +991,25 @@ const vitalTicks = computed(() => [40, 60, 80, 100, 120, 140, 160, 180, 200].map
 const printVitalGridLines = computed(() => vitalTicks.value);
 const chartSvgRef = ref(null);
 const dragHint = reactive({ visible: false, y: 0, left: 0, top: 0, label: '' });
+const activeDragCleanups = new Set();
+
+function registerDragCleanup(cleanup) {
+  activeDragCleanups.add(cleanup);
+  return () => {
+    if (activeDragCleanups.delete(cleanup)) cleanup();
+  };
+}
+
+function cleanupDragListeners() {
+  activeDragCleanups.forEach((cleanup) => cleanup());
+  activeDragCleanups.clear();
+  dragState.active = false;
+  dragHint.visible = false;
+  saveBadge.visible = false;
+}
+
+onUnmounted(cleanupDragListeners);
+
 const VITAL_FIELD_SPECS = {
   sbp: { label: '收缩压', unit: 'mmHg', toY: (v) => 300 - ((v - 40) / 160) * 300, fromY: (y) => Math.round(40 + ((300 - y) / 300) * 160), min: 40, max: 220, decimals: 0 },
   dbp: { label: '舒张压', unit: 'mmHg', toY: (v) => 300 - ((v - 40) / 160) * 300, fromY: (y) => Math.round(40 + ((300 - y) / 300) * 160), min: 20, max: 180, decimals: 0 },
@@ -1262,15 +1283,23 @@ function startSegmentDrag(event, row, mode) {
     saveBadge.time = `${result.start} ~ ${result.end}`;
     saveBadge.visible = true;
   };
+  let unregisterDrag = () => {};
   const onUp = () => {
-    window.removeEventListener('pointermove', onMove);
-    window.removeEventListener('pointerup', onUp);
+    unregisterDrag();
+    dragState.active = false;
     window.setTimeout(() => {
       saveBadge.visible = false;
     }, 1200);
   };
+  const cleanup = () => {
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
+  };
   window.addEventListener('pointermove', onMove);
   window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
+  unregisterDrag = registerDragCleanup(cleanup);
 }
 
 function openLiveMenu(event, type, target = null) {
@@ -1289,6 +1318,7 @@ function closeLiveMenu() {
 
 function openMonitorEdit(event, row) {
   openLiveMenu(event, 'monitor', row);
+  monitorFormError.value = '';
   monitorForm.time = row.time || nowTime();
   monitorForm.batch = false;
   monitorForm.editingId = row.id;
@@ -1304,6 +1334,7 @@ function openMonitorEdit(event, row) {
 function openMonitorDialog(batch) {
   monitorForm.batch = batch;
   monitorForm.editingId = '';
+  monitorFormError.value = '';
   if (!monitorForm.time) monitorForm.time = nowTime();
   monitorForm.endTime = addMinutes(monitorForm.time, 30);
   // 新建/批量新建：默认全部留空，需通过"自动获取监护数据"按钮模拟带入
@@ -1314,6 +1345,7 @@ function openMonitorDialog(batch) {
 
 // 模拟自动获取监护数据：把字典默认值填入当前选中的监护项目，仅前端模拟，不连接真实设备
 function fetchMonitorMock() {
+  monitorFormError.value = '';
   selectedMonitorItems.value.forEach((item) => {
     const meta = monitorMeta(item);
     let value = meta.default;
@@ -1326,9 +1358,13 @@ function fetchMonitorMock() {
 }
 
 function saveMonitorRows() {
+  monitorFormError.value = '';
   const start = clockToMinutes(monitorForm.time);
   const end = monitorForm.batch ? clockToMinutes(monitorForm.endTime) : start;
-  if (start === null || end === null) return;
+  if (start === null || end === null) {
+    monitorFormError.value = '请填写有效的执行时间';
+    return;
+  }
   const missingRequired = selectedMonitorItems.value.filter((item) => {
     const meta = monitorMeta(item);
     if (!meta.required) return false;
@@ -1336,7 +1372,7 @@ function saveMonitorRows() {
     return value === '' || value === undefined || value === null;
   });
   if (missingRequired.length) {
-    window.alert(`${missingRequired.join('、')} 不能为空`);
+    monitorFormError.value = `${missingRequired.join('、')} 不能为空`;
     return;
   }
   if (!monitorForm.batch && monitorForm.editingId) {
@@ -1726,14 +1762,19 @@ function startDragPoint(event, point) {
   };
   apply(event.clientY);
   const onMove = (e) => apply(e.clientY);
+  let unregisterDrag = () => {};
   const onUp = () => {
+    unregisterDrag();
+    window.setTimeout(() => { dragHint.visible = false; }, 800);
+  };
+  const cleanup = () => {
     window.removeEventListener('pointermove', onMove);
     window.removeEventListener('pointerup', onUp);
     window.removeEventListener('pointercancel', onUp);
-    window.setTimeout(() => { dragHint.visible = false; }, 800);
   };
   window.addEventListener('pointermove', onMove);
   window.addEventListener('pointerup', onUp);
   window.addEventListener('pointercancel', onUp);
+  unregisterDrag = registerDragCleanup(cleanup);
 }
 </script>

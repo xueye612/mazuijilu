@@ -961,12 +961,24 @@
         <button class="btn primary" @click="showDeviceLogs = false">关闭</button>
       </template>
     </ModalShell>
+
+    <ConfirmDialog
+      v-if="confirmDialog.visible"
+      :title="confirmDialog.title"
+      :message="confirmDialog.message"
+      @confirm="resolveConfirm(true)"
+      @cancel="resolveConfirm(false)"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed, defineComponent, h, reactive, ref } from 'vue';
+import { computed, onUnmounted, reactive, ref, watch } from 'vue';
 import AnesthesiaLiveSheet from './AnesthesiaLiveSheet.vue';
+import ConfirmDialog from './components/ConfirmDialog.vue';
+import DeviceStatusCard from './components/DeviceStatusCard.vue';
+import EditableMedicationTable from './components/EditableMedicationTable.vue';
+import ModalShell from './components/ModalShell.vue';
 import {
   abnormalRules,
   calculateBMI,
@@ -980,101 +992,38 @@ import {
 } from './anesthesiaRecordHelpers.js';
 import { capabilityMap, currentOperator, dictionaries, initialPatients } from './anesthesiaRecordData.js';
 
-const ModalShell = defineComponent({
-  props: { title: String, wide: Boolean },
-  emits: ['close'],
-  setup(props, { slots, emit }) {
-    return () =>
-      h('div', { class: 'modal-backdrop' }, [
-        h('div', { class: ['modal-card', props.wide ? 'wide' : ''] }, [
-          h('div', { class: 'modal-head' }, [h('h3', props.title), h('button', { onClick: () => emit('close') }, '×')]),
-          h('div', { class: 'modal-body' }, slots.default?.()),
-          h('div', { class: 'modal-footer' }, slots.footer?.()),
-        ]),
-      ]);
-  },
-});
-
-const DeviceStatusCard = defineComponent({
-  props: { device: Object, readOnly: Boolean },
-  emits: ['start', 'pause', 'resume', 'manual', 'logs'],
-  setup(props, { emit }) {
-    const statusClass = (value) => `device-dot ${String(value).replace(/\s+/g, '-')}`;
-    return () =>
-      h('div', { class: 'section-card device-card' }, [
-        h('div', { class: 'card-title-row' }, [h('h2', ['设备采集状态 ', h('span', { class: 'input-badge' }, '设备采集占位')])]),
-        h('div', { class: 'device-status-grid' }, [
-          h('p', [h('i', { class: statusClass(props.device.monitor) }), `监护仪：${props.device.monitor}`]),
-          h('p', [h('i', { class: statusClass(props.device.anesthesiaMachine) }), `麻醉机：${props.device.anesthesiaMachine}`]),
-          h('p', [h('i', { class: statusClass(props.device.infusionPump) }), `输注泵：${props.device.infusionPump}`]),
-          h('p', `数据来源：${props.device.dataSource}`),
-          h('p', `最近采集：${props.device.lastCollectTime || '-'}`),
-          h('p', `采集频率：${props.device.collectFrequency}`),
-          h('p', `数据接收：${props.device.receiveStatus}`),
-          h('p', `异常说明：${props.device.abnormalNote || '-'}`),
-        ]),
-        h('div', { class: 'row-actions' }, [
-          h('button', { class: 'btn small primary', disabled: props.readOnly, onClick: () => emit('start') }, '启动采集'),
-          h('button', { class: 'btn small', disabled: props.readOnly, onClick: () => emit('pause') }, '暂停采集'),
-          h('button', { class: 'btn small', disabled: props.readOnly, onClick: () => emit('resume') }, '恢复采集'),
-          h('button', { class: 'btn small', disabled: props.readOnly, onClick: () => emit('manual') }, '手工补录'),
-          h('button', { class: 'btn small', onClick: () => emit('logs') }, '查看采集日志'),
-        ]),
-      ]);
-  },
-});
-
-const EditableMedicationTable = defineComponent({
-  props: { rows: Array, readOnly: Boolean },
-  emits: ['copy', 'remove', 'event', 'field-focus', 'field-change'],
-  setup(props, { emit }) {
-    const bindAudit = (row, field) => ({
-      onFocus: (e) => emit('field-focus', { rowId: row.id, field, value: e.target.value }),
-      onChange: (e) => emit('field-change', { rowId: row.id, field, value: e.target.value }),
-    });
-    return () =>
-      h('div', { class: 'table-scroll' }, [
-        h('table', { class: 'editable-table' }, [
-          h('thead', [h('tr', ['时间', '药品名称', '剂量', '单位', '途径', '给药原因', '执行人', '核对人', '高警示', '备注', '操作'].map((head) => h('th', head)))]),
-          h(
-            'tbody',
-            props.rows.map((row) =>
-              h('tr', { key: row.id, class: row.highAlert ? 'high-alert-row' : '' }, [
-                h('td', [h('input', { type: 'time', value: row.time, disabled: props.readOnly, onInput: (e) => (row.time = e.target.value), ...bindAudit(row, 'time') })]),
-                h('td', [h('input', { value: row.name, disabled: props.readOnly, onInput: (e) => (row.name = e.target.value), ...bindAudit(row, 'name') })]),
-                h('td', [h('input', { type: 'number', value: row.dose, disabled: props.readOnly, onInput: (e) => (row.dose = e.target.value), ...bindAudit(row, 'dose') })]),
-                h('td', [h('input', { value: row.unit, disabled: props.readOnly, onInput: (e) => (row.unit = e.target.value), ...bindAudit(row, 'unit') })]),
-                h('td', [h('input', { value: row.route, disabled: props.readOnly, onInput: (e) => (row.route = e.target.value), ...bindAudit(row, 'route') })]),
-                h('td', [h('input', { value: row.reason, disabled: props.readOnly, onInput: (e) => (row.reason = e.target.value) })]),
-                h('td', [h('input', { value: row.executor, disabled: props.readOnly, onInput: (e) => (row.executor = e.target.value), ...bindAudit(row, 'executor') })]),
-                h('td', [h('input', { value: row.checker, disabled: props.readOnly, onInput: (e) => (row.checker = e.target.value), ...bindAudit(row, 'checker') })]),
-                h('td', [h('input', { type: 'checkbox', checked: row.highAlert, disabled: props.readOnly, onChange: (e) => { row.highAlert = e.target.checked; emit('field-change', { rowId: row.id, field: 'highAlert', value: e.target.checked ? '是' : '否' }); } })]),
-                h('td', [h('input', { value: row.remark, disabled: props.readOnly, onInput: (e) => (row.remark = e.target.value) })]),
-                h('td', { class: 'table-actions' }, [
-                  h('button', { disabled: props.readOnly, onClick: () => emit('copy', row) }, '复制'),
-                  h('button', { disabled: props.readOnly, onClick: () => emit('event', row) }, '事件'),
-                  h('button', { disabled: props.readOnly, onClick: () => emit('remove', row.id) }, '删除'),
-                ]),
-              ]),
-            ),
-          ),
-        ]),
-      ]);
-  },
-});
-
+const DRAFT_STORAGE_KEY = 'anesthesia-record-sheet:draft:v1';
 const clone = (value) => JSON.parse(JSON.stringify(value));
-const patients = ref(clone(initialPatients));
+
+function readStoredDraft() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const draft = JSON.parse(window.localStorage.getItem(DRAFT_STORAGE_KEY) || 'null');
+    if (!draft || !Array.isArray(draft.patients)) return null;
+    return draft;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredDraft(savedAt = nowTime()) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ patients: patients.value, savedAt }));
+}
+
+const storedDraft = readStoredDraft();
+const patients = ref(storedDraft?.patients ? clone(storedDraft.patients) : clone(initialPatients));
 const selectedPatientId = ref(patients.value[0].id);
 const activeFilter = ref('全部');
 const activeTab = ref('live');
-const lastSavedAt = ref('');
+const lastSavedAt = ref(storedDraft?.savedAt || '');
 const showRescueSummary = ref(false);
 const showUnlockModal = ref(false);
 const showJsonModal = ref(false);
 const showDeviceLogs = ref(false);
 const jsonPreview = ref('');
 const toasts = ref([]);
+const confirmDialog = reactive({ visible: false, title: '确认操作', message: '', resolve: null });
 const abnormalMeasureDraft = reactive({});
 const generationForm = reactive({ start: '08:00', end: '10:00', interval: 5 });
 const fieldMenu = reactive({ visible: false, x: 0, y: 0, target: null, field: '' });
@@ -1125,6 +1074,20 @@ const timeFields = [
 const keyNodeFields = timeFields.filter((field) => ['recordStart', 'anesthesiaStart', 'surgeryStart', 'surgeryEnd', 'anesthesiaEnd', 'outRoomTime'].includes(field.key));
 const keyTimeSummaryFields = timeFields.filter((field) => ['inRoomTime', 'anesthesiaStart', 'surgeryStart', 'surgeryEnd', 'anesthesiaEnd', 'extubationTime', 'outRoomTime'].includes(field.key));
 const highAlertDrugs = new Set(['舒芬太尼', '瑞芬太尼', '去甲肾上腺素', '多巴胺', '肾上腺素']);
+
+let draftAutosaveTimer = null;
+watch(patients, () => {
+  if (typeof window === 'undefined') return;
+  window.clearTimeout(draftAutosaveTimer);
+  draftAutosaveTimer = window.setTimeout(() => {
+    lastSavedAt.value = nowTime();
+    writeStoredDraft(lastSavedAt.value);
+  }, 1200);
+}, { deep: true });
+
+onUnmounted(() => {
+  if (typeof window !== 'undefined') window.clearTimeout(draftAutosaveTimer);
+});
 
 const currentPatient = computed(() => patients.value.find((patient) => patient.id === selectedPatientId.value) || patients.value[0]);
 const currentRecord = computed(() => currentPatient.value.record);
@@ -1193,6 +1156,22 @@ function notify(message, type = 'info') {
   window.setTimeout(() => {
     toasts.value = toasts.value.filter((item) => item.id !== toast.id);
   }, 3200);
+}
+
+function requestConfirm(message, title = '确认操作') {
+  return new Promise((resolve) => {
+    confirmDialog.title = title;
+    confirmDialog.message = message;
+    confirmDialog.resolve = resolve;
+    confirmDialog.visible = true;
+  });
+}
+
+function resolveConfirm(confirmed) {
+  const resolve = confirmDialog.resolve;
+  confirmDialog.visible = false;
+  confirmDialog.resolve = null;
+  if (resolve) resolve(confirmed);
 }
 
 // ===== 字段修改留痕 & 录入预警 =====
@@ -1363,9 +1342,9 @@ function manualDeviceRecord() {
 }
 
 // 抢救模式频率调整：保存原频率，进入抢救后自动提升到 1 分钟。
-function enterRescueMode() {
+async function enterRescueMode() {
   if (isReadOnly.value) return notify('已签名或已归档记录需先解锁修改。', 'warn');
-  if (!window.confirm('确认进入抢救模式？系统将提高生命体征记录频率，并标记抢救事件。')) return;
+  if (!(await requestConfirm('确认进入抢救模式？系统将提高生命体征记录频率，并标记抢救事件。', '进入抢救模式'))) return;
   const record = currentRecord.value;
   const time = nowTime();
   record.previousFrequency = record.vitalFrequency;
@@ -1426,8 +1405,8 @@ function addVitalRow(time = nowTime(), silent = false, source = '手工录入', 
   if (!silent) addOperationLog('新增生命体征记录', source);
 }
 
-function removeVitalRow(id) {
-  if (!window.confirm('确认删除该生命体征记录？')) return;
+async function removeVitalRow(id) {
+  if (!(await requestConfirm('确认删除该生命体征记录？', '删除生命体征'))) return;
   currentRecord.value.vitals = currentRecord.value.vitals.filter((row) => row.id !== id);
   addOperationLog('删除生命体征记录', '手工操作');
 }
@@ -1542,8 +1521,8 @@ function quickAddMedication(name) {
   addMedication(name);
 }
 
-function removeMedication(id) {
-  if (!window.confirm('确认删除该用药记录？')) return;
+async function removeMedication(id) {
+  if (!(await requestConfirm('确认删除该用药记录？', '删除用药记录'))) return;
   currentRecord.value.medications = currentRecord.value.medications.filter((row) => row.id !== id);
 }
 
@@ -1575,8 +1554,8 @@ function addOutput() {
   currentRecord.value.outputs.push({ id: uniqueId('output'), time: nowTime(), urine: 0, bloodLoss: 0, drainage: 0, other: 0, remark: '' });
 }
 
-function removeRow(rows, id) {
-  if (!window.confirm('确认删除该记录？')) return;
+async function removeRow(rows, id) {
+  if (!(await requestConfirm('确认删除该记录？', '删除记录'))) return;
   const index = rows.findIndex((row) => row.id === id);
   if (index >= 0) rows.splice(index, 1);
 }
@@ -1697,6 +1676,7 @@ function saveUnlockRequest() {
 
 function saveDraft() {
   lastSavedAt.value = nowTime();
+  writeStoredDraft(lastSavedAt.value);
   if (currentRecord.value.status === '修改中') {
     currentRecord.value.modificationLogs.push({
       id: uniqueId('modify'),
@@ -1710,7 +1690,7 @@ function saveDraft() {
     });
   }
   addOperationLog('保存草稿', '手工操作');
-  notify('草稿已保存到前端本地 state。', 'success');
+  notify('草稿已保存到浏览器本地草稿。', 'success');
 }
 
 function goPreview() {
