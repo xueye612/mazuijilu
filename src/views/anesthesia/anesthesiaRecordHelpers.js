@@ -383,7 +383,7 @@ export function buildLiveTimeScale(start = '11:00', end = '14:30', minorInterval
         time: minutesToClock(minute),
         label: minutesToClock(minute),
         isMajor: offset % majorInterval === 0,
-        percent: totalMinutes ? Number(((offset / totalMinutes) * 100).toFixed(2)) : 0,
+        percent: totalMinutes ? Number(((offset / totalMinutes) * 100).toFixed(6)) : 0,
       });
     }
     return ticks;
@@ -406,7 +406,7 @@ export function timeToPercent(time, start = '11:00', end = '14:30') {
   const valueMinutes = clockToMinutes(time);
   if (startMinutes === null || endMinutes === null || valueMinutes === null || endMinutes <= startMinutes) return 0;
   const percent = ((valueMinutes - startMinutes) / (endMinutes - startMinutes)) * 100;
-  return Number(Math.max(0, Math.min(100, percent)).toFixed(2));
+  return Number(Math.max(0, Math.min(100, percent)).toFixed(6));
 }
 
 export function percentToTime(percent, start = '11:00', end = '14:30', snapMinutes = 5) {

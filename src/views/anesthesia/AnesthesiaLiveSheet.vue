@@ -984,6 +984,7 @@ const timeScale = computed(() => buildLiveTimeScale(sheetStart.value, sheetEnd.v
 const sheetGridStyle = computed(() => ({
   '--minor-columns': Math.max(1, timeScale.value.totalMinutes / timeScale.value.minorInterval),
   '--major-columns': Math.max(1, timeScale.value.totalMinutes / timeScale.value.majorInterval),
+  '--major-step': Math.max(1, timeScale.value.majorInterval / timeScale.value.minorInterval),
 }));
 const visibleVitals = computed(() => props.record.vitals || []);
 const vitalTicks = computed(() => [40, 60, 80, 100, 120, 140, 160, 180, 200].map((value) => ({ value, top: 100 - ((value - 40) / 160) * 100 })));

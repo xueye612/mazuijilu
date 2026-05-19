@@ -641,7 +641,7 @@ textarea:focus {
   background-image:
     linear-gradient(to left, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
     linear-gradient(to left, rgba(148, 163, 184, 0.7) 1px, transparent 1px);
-  background-size: calc(100% / var(--major-columns, 7)) 100%, calc(100% / var(--minor-columns, 42)) 100%;
+  background-size: calc(100% / var(--minor-columns, 42) * var(--major-step, 6)) 100%, calc(100% / var(--minor-columns, 42)) 100%;
 }
 
 .band-medication {
@@ -757,7 +757,7 @@ textarea:focus {
     linear-gradient(to left, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
     linear-gradient(to left, rgba(148, 163, 184, 0.85) 1px, transparent 1px),
     linear-gradient(to top, rgba(148, 163, 184, 0.85) 1px, transparent 1px);
-  background-size: calc(100% / var(--major-columns, 7)) 100%, calc(100% / var(--minor-columns, 42)) 100%, 100% 22px;
+  background-size: calc(100% / var(--minor-columns, 42) * var(--major-step, 6)) 100%, calc(100% / var(--minor-columns, 42)) 100%, 100% 22px;
 }
 
 .spo2-text {
@@ -948,7 +948,7 @@ textarea:focus {
     linear-gradient(to left, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
     linear-gradient(to left, rgba(148, 163, 184, 0.7) 1px, transparent 1px),
     linear-gradient(to top, #111 1px, transparent 1px);
-  background-size: calc(100% / var(--major-columns, 7)) 100%, calc(100% / var(--minor-columns, 42)) 100%, 100% 22px;
+  background-size: calc(100% / var(--minor-columns, 42) * var(--major-step, 6)) 100%, calc(100% / var(--minor-columns, 42)) 100%, 100% 22px;
 }
 
 .status-marker {
