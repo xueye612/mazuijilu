@@ -533,13 +533,15 @@ textarea:focus {
 
 .live-sheet-scroll {
   width: 100%;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   border: 1px solid #2f3b4a;
   background: #fff;
 }
 
 .live-sheet-board {
-  min-width: max(1100px, calc(140px + var(--major-columns, 7) * 130px));
+  min-width: 0;
+  width: 100%;
   background: #fff;
   font-family: "SimSun", "Microsoft YaHei", serif;
   color: #111827;
@@ -564,6 +566,7 @@ textarea:focus {
   position: relative;
   overflow: visible;
   background: #fff;
+  border-right: 1px solid #111;
 }
 
 .major-tick-label {
@@ -638,6 +641,7 @@ textarea:focus {
 .chart-grid-wrap {
   position: relative;
   min-height: 100%;
+  border-right: 1px solid #111;
   background-image:
     linear-gradient(to left, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
     linear-gradient(to left, rgba(148, 163, 184, 0.7) 1px, transparent 1px);
