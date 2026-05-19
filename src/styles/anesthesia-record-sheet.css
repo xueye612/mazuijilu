@@ -454,6 +454,18 @@ textarea:focus {
   font-size: 13px;
 }
 
+.mode-strip .mode-left {
+  gap: 8px;
+}
+
+.mode-strip .mode-left strong {
+  font-size: 13px;
+}
+
+.mode-strip .mode-right {
+  justify-content: flex-end;
+}
+
 .tab-panel {
   display: flex;
   flex-direction: column;
@@ -494,6 +506,14 @@ textarea:focus {
   display: none;
 }
 
+.band-labels .print-band-label {
+  display: none;
+}
+
+.band-labels .screen-band-label {
+  display: flex;
+}
+
 .live-sheet-header {
   display: flex;
   justify-content: space-between;
@@ -529,7 +549,7 @@ textarea:focus {
   display: grid;
   grid-template-columns: var(--live-sheet-left-width) 1fr;
   height: 32px;
-  border-bottom: 2px solid #111;
+  border-bottom: 1px solid #111;
 }
 
 .sheet-left-head {
@@ -572,13 +592,13 @@ textarea:focus {
 }
 
 .minor-tick.major {
-  border-left-width: 1.5px;
+  border-left-width: 1px;
 }
 
 .live-band {
   display: grid;
   grid-template-columns: var(--live-sheet-side-width) calc(var(--live-sheet-left-width) - var(--live-sheet-side-width)) 1fr;
-  border-bottom: 2px solid #111;
+  border-bottom: 1px solid #111;
 }
 
 .band-side {
@@ -597,7 +617,7 @@ textarea:focus {
 
 .band-labels,
 .status-labels {
-  border-right: 2px solid #111;
+  border-right: 1px solid #111;
   background: #fbfdff;
 }
 
@@ -764,7 +784,7 @@ textarea:focus {
   display: grid;
   grid-template-columns: var(--live-chart-legend-width) calc(var(--live-sheet-left-width) - var(--live-chart-legend-width)) 1fr;
   height: 330px;
-  border-bottom: 2px solid #111;
+  border-bottom: 1px solid #111;
 }
 
 .chart-legend {
@@ -789,7 +809,7 @@ textarea:focus {
 
 .vital-scale {
   position: relative;
-  border-right: 2px solid #111;
+  border-right: 1px solid #111;
   background: #fbfdff;
 }
 
@@ -950,7 +970,7 @@ textarea:focus {
 .live-notes {
   display: grid;
   grid-template-columns: 1.1fr 1.1fr 1fr 1.3fr 1.2fr;
-  border-bottom: 2px solid #111;
+  border-bottom: 1px solid #111;
 }
 
 .live-notes div {
@@ -2738,14 +2758,14 @@ textarea:focus {
   }
 
   .print-rule-box {
-    border: 1.5px solid #111;
-    border-bottom: 2px solid #111;
+    border: 1px solid #111;
+    border-bottom: 1px solid #111;
     padding: 0 2mm 1mm;
   }
 
   .live-sheet-scroll {
     overflow: visible;
-    border: 1.5px solid #111;
+    border: 1px solid #111;
   }
 
   .live-sheet-board {
@@ -2758,7 +2778,7 @@ textarea:focus {
   .sheet-time-ruler {
     grid-template-columns: var(--print-sheet-left-width) 1fr;
     height: 6mm;
-    border-bottom: 1.5px solid #111;
+    border-bottom: 1px solid #111;
   }
 
   .sheet-left-head {
@@ -2791,13 +2811,13 @@ textarea:focus {
 
   .minor-tick.major {
     height: auto;
-    border-left-width: 1.2px;
+    border-left-width: 1px;
   }
 
   .live-band,
   .band-status {
     grid-template-columns: var(--print-band-side-width) calc(var(--print-sheet-left-width) - var(--print-band-side-width)) 1fr;
-    border-bottom: 1.5px solid #111;
+    border-bottom: 1px solid #111;
   }
 
   .band-side {
@@ -2816,7 +2836,7 @@ textarea:focus {
     display: grid;
     grid-template-rows: repeat(var(--print-rows, 1), minmax(0, 1fr));
     background: #fff;
-    border-right: 1.5px solid #111;
+    border-right: 1px solid #111;
   }
 
   .band-labels div,
@@ -2828,11 +2848,16 @@ textarea:focus {
     font-size: 9pt;
   }
 
-  .screen-band-label {
+  .band-labels div:first-child,
+  .status-labels div:first-child {
+    border-top: 0.6px solid #111;
+  }
+
+  .band-labels .screen-band-label {
     display: none !important;
   }
 
-  .print-band-label {
+  .band-labels .print-band-label {
     display: flex;
   }
 
@@ -2881,7 +2906,7 @@ textarea:focus {
   }
 
   .print-grid-lines span.major {
-    border-left: 1.2px solid #111;
+    border-left: 1px solid #111;
   }
 
   .print-row-lines span,
@@ -2921,6 +2946,18 @@ textarea:focus {
   .monitor-text,
   .remark-text {
     font-size: 8pt;
+  }
+
+  .monitor-text,
+  .spo2-text,
+  .remark-text {
+    top: calc((var(--row-index, 0) + 0.5) * 100% / var(--row-count, 1)) !important;
+    transform: translate(-50%, -50%);
+    padding: 0 0.6mm;
+    background: #fff;
+    box-shadow: 0 0 0 0.6mm #fff;
+    font-size: 9pt;
+    font-weight: 700;
   }
 
   .drug-marker,
@@ -2974,13 +3011,13 @@ textarea:focus {
     display: grid;
     grid-template-columns: var(--print-sheet-left-width) 1fr;
     min-height: 7mm;
-    border-bottom: 1.5px solid #111;
+    border-bottom: 1px solid #111;
   }
 
   .print-surgery-status-row .band-labels {
     display: grid;
     grid-template-rows: 1fr;
-    border-right: 1.5px solid #111;
+    border-right: 1px solid #111;
   }
 
   .print-surgery-status-row .status-marker {
@@ -2992,7 +3029,7 @@ textarea:focus {
   .live-vital-chart {
     grid-template-columns: var(--print-chart-legend-width) calc(var(--print-sheet-left-width) - var(--print-chart-legend-width)) 1fr;
     height: 62mm;
-    border-bottom: 1.5px solid #111;
+    border-bottom: 1px solid #111;
   }
 
   .live-chart-svg {
@@ -3017,7 +3054,7 @@ textarea:focus {
 
   .vital-scale {
     background: #fff;
-    border-right: 1.5px solid #111;
+    border-right: 1px solid #111;
   }
 
   .vital-scale span {
@@ -3061,7 +3098,7 @@ textarea:focus {
   }
 
   .print-bottom-panel {
-    border: 1.5px solid #111;
+    border: 1px solid #111;
     border-top: 0;
     font-size: 9pt;
   }
@@ -3070,7 +3107,7 @@ textarea:focus {
     display: grid;
     grid-template-columns: 7mm 7mm 1fr 8mm 1fr 8mm 1fr;
     min-height: 26mm;
-    border-bottom: 1.5px solid #111;
+    border-bottom: 1px solid #111;
   }
 
   .print-large-notes > * {

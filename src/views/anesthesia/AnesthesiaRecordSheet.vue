@@ -91,12 +91,12 @@
           </button>
         </nav>
 
-        <section class="mode-strip">
-          <div>
-            <strong>当前录入模式说明</strong>
-            <span>{{ activeTabLabel }}：{{ activeTabMeta.mode }}</span>
+        <section v-if="activeTab !== 'live'" class="mode-strip">
+          <div class="mode-left">
+            <strong>{{ activeTabLabel }}</strong>
+            <span>{{ activeTabMeta.mode }}</span>
           </div>
-          <div>
+          <div class="mode-right">
             <span>记录频率：{{ currentRecord.vitalFrequency }}分钟/次</span>
             <span>数据来源：{{ currentRecord.dataSource }}</span>
             <span>下一次建议记录：{{ nextVitalTime }}</span>
@@ -110,7 +110,6 @@
           :read-only="isReadOnly"
           @add-vital="addVitalRow()"
           @import-device="importDeviceVitals"
-          @add-medication="addMedication()"
           @quality-check="runQualityCheck"
         />
 

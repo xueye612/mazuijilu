@@ -3,12 +3,11 @@
     <div class="section-card live-sheet-toolbar">
       <div>
         <h2>实时麻醉记录单 <span class="input-badge">实时显示 + 持续录入</span></h2>
-        <p>右键新增/批量录入，线段拖动后实时保存；数据列表可直接编辑和删除。</p>
+        <p>右键新增/编辑；拖动线段自动保存。</p>
       </div>
       <div class="row-actions">
         <button class="btn small primary" :disabled="readOnly" @click="$emit('add-vital')">新增当前时间生命体征</button>
         <button class="btn small" :disabled="readOnly" @click="$emit('import-device')">从设备占位带入</button>
-        <button class="btn small" :disabled="readOnly" @click="$emit('add-medication')">新增用药</button>
         <button class="btn small" @click="$emit('quality-check')">质控检查</button>
       </div>
     </div>
@@ -203,7 +202,7 @@
                 :key="item.key"
                 class="monitor-text"
                 :class="{ 'spo2-text': item.metric === 'SpO2', abnormal: item.abnormal }"
-                :style="{ left: timeLeft(item.time), top: item.top }"
+                :style="{ left: monitorValueLeft(item.time), top: item.top, '--row-index': item.rowIndex, '--row-count': item.rowCount }"
                 :title="`${item.time} ${item.metric}：${item.value}${monitorMeta(item.metric).unit || ''}`"
                 @contextmenu.prevent.stop="openMonitorEdit($event, item.row)"
                 @click.stop="openMonitorEdit($event, item.row)"
@@ -812,7 +811,7 @@ const props = defineProps({
   readOnly: { type: Boolean, default: false },
 });
 
-defineEmits(['add-vital', 'import-device', 'add-medication', 'quality-check']);
+defineEmits(['add-vital', 'import-device', 'quality-check']);
 
 const liveMenu = reactive({ visible: false, x: 0, y: 0, type: 'grid', target: null });
 const saveBadge = reactive({ visible: false, x: 0, y: 0, time: '' });
@@ -1025,7 +1024,7 @@ const medicationRows = computed(() =>
     printIndex: index + 1,
     rowCount: 9,
     endTime: med.endTime || addMinutes(med.time, isContinuousDrug(med) ? 45 : 0),
-    label: `${med.dose || ''}${med.unit || ''}`,
+    label: `${med.dose || ''}${med.unit ? ` ${med.unit}` : ''}`,
   })),
 );
 const continuousMedicationRows = computed(() => medicationRows.value.filter((row) => isContinuousDrug(row)));
@@ -1034,7 +1033,10 @@ const printMedicationLabelRows = computed(() => [
   { key: 'plane', label: '麻醉平面' },
   ...Array.from({ length: 8 }, (_, index) => {
     const row = medicationRows.value[index];
-    return { key: `med-${index + 1}`, label: `${index + 1}${row?.name ? ` ${row.name}` : ''}` };
+    return {
+      key: `med-${index + 1}`,
+      label: `${index + 1}${row?.name ? ` ${row.name}` : ''}${row?.unit ? `（${row.unit}）` : ''}`,
+    };
   }),
 ]);
 const printInfusionRowCount = 4;
@@ -1089,7 +1091,17 @@ const monitorCells = computed(() =>
       .map((metric, index) => {
         const value = monitorValue(row, metric);
         if (value === '' || value === undefined || value === null) return null;
-        return { key: `${row.id}-${metric}`, row, metric, value, time: row.time, top: `${6 + index * 22}px`, abnormal: metric === 'SpO2' && Number(value) < 95 };
+        return {
+          key: `${row.id}-${metric}`,
+          row,
+          metric,
+          value,
+          time: row.time,
+          top: `${6 + index * 22}px`,
+          rowIndex: index,
+          rowCount: printMonitorRowCount.value,
+          abnormal: metric === 'SpO2' && Number(value) < 95,
+        };
       })
       .filter(Boolean),
   ),
@@ -1212,6 +1224,16 @@ function uniqueId(prefix) {
 
 function timeLeft(time) {
   return `${timeToPercent(time, sheetStart.value, sheetEnd.value)}%`;
+}
+
+function clampPercent(value, padding = 0.8) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.max(padding, Math.min(100 - padding, numeric));
+}
+
+function monitorValueLeft(time) {
+  return `${clampPercent(timeToPercent(time, sheetStart.value, sheetEnd.value))}%`;
 }
 
 function markerStyle(time, index, rowCount = 1, printIndex = index) {
