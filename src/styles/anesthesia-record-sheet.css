@@ -823,13 +823,27 @@ textarea:focus {
   font-size: 12px;
 }
 
+.vital-scale span:last-child {
+  top: 2px !important;
+  transform: translateY(0);
+}
+
+.vital-scale span:first-child {
+  top: calc(100% - 2px) !important;
+  transform: translateY(-100%);
+}
+
 .chart-grid-wrap {
   background-image:
-    linear-gradient(to right, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
-    linear-gradient(to right, rgba(148, 163, 184, 0.75) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(148, 163, 184, 0.75) 1px, transparent 1px);
-  background-size: calc(100% / var(--major-columns, 7)) 100%, calc(100% / var(--minor-columns, 42)) 100%, 100% calc(100% / 8), 100% calc(100% / 32);
+    linear-gradient(to left, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
+    linear-gradient(to left, rgba(148, 163, 184, 0.75) 1px, transparent 1px),
+    linear-gradient(to top, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
+    linear-gradient(to top, rgba(148, 163, 184, 0.75) 1px, transparent 1px);
+  background-size:
+    calc(100% / var(--minor-columns, 42) * var(--major-step, 6)) 100%,
+    calc(100% / var(--minor-columns, 42)) 100%,
+    100% calc(100% / 8),
+    100% calc(100% / 32);
 }
 
 .live-chart-svg {
@@ -3072,6 +3086,16 @@ textarea:focus {
     right: 1mm;
     transform: translateY(-50%);
     font-size: 8.5pt;
+  }
+
+  .vital-scale span:last-child {
+    top: 1mm !important;
+    transform: translateY(0);
+  }
+
+  .vital-scale span:first-child {
+    top: calc(100% - 1mm) !important;
+    transform: translateY(-100%);
   }
 
   .chart-grid-wrap {
