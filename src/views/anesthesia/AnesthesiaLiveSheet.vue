@@ -92,8 +92,9 @@
           <div class="live-band band-medication" :style="{ '--print-rows': 9 }">
             <div class="band-side vertical">麻醉用药</div>
             <div class="band-labels">
-              <div class="screen-band-label">麻醉平面</div>
-              <div v-for="row in medicationGroups" :key="row.key" class="screen-band-label">{{ row.name }}</div>
+              <div v-for="(row, index) in medicationLabelRows" :key="row.key" class="screen-band-label" :style="labelRowStyle(index, 9)">
+                {{ row.name }}
+              </div>
               <div v-for="row in printMedicationLabelRows" :key="row.key" class="print-band-label">{{ row.label }}</div>
             </div>
             <div class="band-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'drugGrid')">
@@ -1063,6 +1064,12 @@ const medicationGroups = computed(() => {
   });
 });
 
+const medicationLabelRows = computed(() => {
+  const rows = [{ key: 'plane', name: '麻醉平面' }, ...medicationGroups.value.map((item) => ({ key: item.key, name: item.name }))];
+  while (rows.length < 9) rows.push({ key: `med-empty-${rows.length}`, name: '' });
+  return rows.slice(0, 9);
+});
+
 const medicationRows = computed(() =>
   medicationGroups.value.flatMap((group, index) =>
     group.items.map((med) => ({
@@ -1276,6 +1283,14 @@ function ensureMonitorDefault(item) {
 function toggleSeries(key) {
   if (!(key in seriesVisible)) return;
   seriesVisible[key] = !seriesVisible[key];
+}
+
+function labelRowStyle(index, rowCount) {
+  const total = Math.max(1, Number(rowCount) || 1);
+  if (index >= total - 1) return { borderBottomWidth: '0' };
+  const boundary = index + 1;
+  const major = boundary % 4 === 0 || boundary === total - 1;
+  return { borderBottomColor: major ? '#111' : '#9ca3af' };
 }
 
 function isContinuousDrug(row) {
