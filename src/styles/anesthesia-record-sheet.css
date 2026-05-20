@@ -498,9 +498,6 @@ textarea:focus {
 .print-sheet-title,
 .print-patient-ruled,
 .print-bottom-panel,
-.print-grid-lines,
-.print-row-lines,
-.print-chart-horizontal-lines,
 .print-band-label,
 .print-surgery-status-row {
   display: none;
@@ -566,6 +563,7 @@ textarea:focus {
   position: relative;
   overflow: visible;
   background: #fff;
+  border-right: 1px solid #111;
 }
 
 .major-tick-label {
@@ -640,10 +638,59 @@ textarea:focus {
 .chart-grid-wrap {
   position: relative;
   min-height: 100%;
-  background-image:
-    linear-gradient(to left, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
-    linear-gradient(to left, rgba(148, 163, 184, 0.7) 1px, transparent 1px);
-  background-size: calc(100% / var(--minor-columns, 42) * var(--major-step, 6)) 100%, calc(100% / var(--minor-columns, 42)) 100%;
+  border-right: 1px solid #111;
+  background-image: none;
+}
+
+.print-grid-lines,
+.print-row-lines,
+.print-chart-horizontal-lines {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.print-grid-lines span,
+.print-row-lines span,
+.print-chart-horizontal-lines span {
+  position: absolute;
+  display: block;
+  box-sizing: border-box;
+}
+
+.print-grid-lines span {
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px solid #b8b8b8;
+}
+
+.print-grid-lines span.major {
+  border-left-color: #111;
+}
+
+.print-grid-lines span:first-child {
+  display: none;
+}
+
+.print-row-lines span,
+.print-chart-horizontal-lines span {
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px solid #c4c4c4;
+}
+
+.print-row-lines span.major,
+.print-chart-horizontal-lines span.major {
+  border-top-color: #111;
+}
+
+.print-row-lines span:first-child,
+.print-row-lines span:last-child {
+  display: none;
 }
 
 .band-medication {
@@ -663,6 +710,7 @@ textarea:focus {
 }
 
 .horizontal-lines {
+  display: none;
   position: absolute;
   inset: 0;
   background: repeating-linear-gradient(to bottom, transparent 0, transparent 21px, #9ca3af 21px, #9ca3af 22px);
@@ -755,11 +803,7 @@ textarea:focus {
 }
 
 .monitor-grid {
-  background-image:
-    linear-gradient(to left, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
-    linear-gradient(to left, rgba(148, 163, 184, 0.85) 1px, transparent 1px),
-    linear-gradient(to top, rgba(148, 163, 184, 0.85) 1px, transparent 1px);
-  background-size: calc(100% / var(--minor-columns, 42) * var(--major-step, 6)) 100%, calc(100% / var(--minor-columns, 42)) 100%, 100% 22px;
+  background-image: none;
 }
 
 .spo2-text {
@@ -835,15 +879,9 @@ textarea:focus {
 
 .chart-grid-wrap {
   background-image:
-    linear-gradient(to left, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
-    linear-gradient(to left, rgba(148, 163, 184, 0.75) 1px, transparent 1px),
     linear-gradient(to top, rgba(17, 24, 39, 0.9) 1px, transparent 1px),
     linear-gradient(to top, rgba(148, 163, 184, 0.75) 1px, transparent 1px);
-  background-size:
-    calc(100% / var(--minor-columns, 42) * var(--major-step, 6)) 100%,
-    calc(100% / var(--minor-columns, 42)) 100%,
-    100% calc(100% / 8),
-    100% calc(100% / 32);
+  background-size: 100% calc(100% / 8), 100% calc(100% / 32);
 }
 
 .live-chart-svg {
