@@ -2996,12 +2996,15 @@ textarea:focus {
   .band-status {
     grid-template-columns: var(--print-band-side-width) calc(var(--print-sheet-left-width) - var(--print-band-side-width)) 1fr;
     border-bottom: 1px solid #111;
+    min-height: calc(var(--print-row-height) * var(--print-rows, 1));
   }
 
   .band-side {
     background: #fff;
     font-size: 9.5pt;
     font-weight: 400;
+    border-right: 0;
+    height: calc(var(--print-row-height) * var(--print-rows, 1));
   }
 
   .band-side.vertical,
@@ -3014,6 +3017,8 @@ textarea:focus {
     display: block;
     background: #fff;
     border-right: 1px solid #111;
+    border-left: 1px solid #111;
+    height: calc(var(--print-row-height) * var(--print-rows, 1));
   }
 
   .band-labels .label-row,
@@ -3038,6 +3043,7 @@ textarea:focus {
   .monitor-grid,
   .band-status .band-grid {
     background-image: none;
+    height: calc(var(--print-row-height) * var(--print-rows, 1));
   }
 
   .horizontal-lines {
