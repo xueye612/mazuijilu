@@ -229,11 +229,11 @@
           <div class="live-vital-chart" @contextmenu.prevent.stop="openLiveMenu($event, 'chart')">
             <div class="chart-legend">
               <span class="legend-title">生命体征</span>
-              <span><b class="symbol red">▽</b> 收缩压</span>
-              <span><b class="symbol red">△</b> 舒张压</span>
-              <span><b class="symbol green">●</b> 脉搏</span>
-              <span><b class="symbol blue">◇</b> SpO₂</span>
-              <span><b class="symbol gray">★</b> 体温</span>
+              <button type="button" class="legend-item" :class="{ off: !seriesVisible.sbp }" @click.stop="toggleSeries('sbp')"><b class="symbol red">▽</b> 收缩压</button>
+              <button type="button" class="legend-item" :class="{ off: !seriesVisible.dbp }" @click.stop="toggleSeries('dbp')"><b class="symbol red">△</b> 舒张压</button>
+              <button type="button" class="legend-item" :class="{ off: !seriesVisible.hr }" @click.stop="toggleSeries('hr')"><b class="symbol green">●</b> 脉搏</button>
+              <button type="button" class="legend-item" :class="{ off: !seriesVisible.spo2 }" @click.stop="toggleSeries('spo2')"><b class="symbol blue">◇</b> SpO₂</button>
+              <button type="button" class="legend-item" :class="{ off: !seriesVisible.temp }" @click.stop="toggleSeries('temp')"><b class="symbol gray">★</b> 体温</button>
               <small class="legend-tip">拖动点可改值</small>
             </div>
             <div class="vital-scale">
@@ -247,11 +247,11 @@
                 <span v-for="line in printVitalGridLines" :key="`chart-h-${line.value}`" class="major" :style="{ top: line.top + '%' }"></span>
               </div>
               <svg ref="chartSvgRef" class="live-chart-svg" viewBox="0 0 1000 300" preserveAspectRatio="none">
-                <polyline :points="chartLine('sbp')" class="live-line pressure" />
-                <polyline :points="chartLine('dbp')" class="live-line pressure thin" />
-                <polyline :points="chartLine('hr')" class="live-line pulse" />
-                <polyline :points="chartLine('spo2')" class="live-line spo2" />
-                <g>
+                <polyline v-if="seriesVisible.sbp" :points="chartLine('sbp')" class="live-line pressure" />
+                <polyline v-if="seriesVisible.dbp" :points="chartLine('dbp')" class="live-line pressure thin" />
+                <polyline v-if="seriesVisible.hr" :points="chartLine('hr')" class="live-line pulse" />
+                <polyline v-if="seriesVisible.spo2" :points="chartLine('spo2')" class="live-line spo2" />
+                <g v-if="seriesVisible.sbp">
                   <path
                     v-for="point in chartPoints('sbp')"
                     :key="point.key"
@@ -262,6 +262,8 @@
                   >
                     <title>{{ point.row.time }} 收缩压：{{ point.value }} mmHg（拖动可改值）</title>
                   </path>
+                </g>
+                <g v-if="seriesVisible.dbp">
                   <path
                     v-for="point in chartPoints('dbp')"
                     :key="point.key"
@@ -273,7 +275,7 @@
                     <title>{{ point.row.time }} 舒张压：{{ point.value }} mmHg（拖动可改值）</title>
                   </path>
                 </g>
-                <g>
+                <g v-if="seriesVisible.hr">
                   <circle
                     v-for="point in chartPoints('hr')"
                     :key="point.key"
@@ -287,7 +289,7 @@
                     <title>{{ point.row.time }} 脉搏：{{ point.value }} 次/分（拖动可改值）</title>
                   </circle>
                 </g>
-                <g>
+                <g v-if="seriesVisible.spo2">
                   <path
                     v-for="point in chartPoints('spo2')"
                     :key="point.key"
@@ -299,7 +301,7 @@
                     <title>{{ point.row.time }} SpO₂：{{ point.value }}%（拖动可改值）</title>
                   </path>
                 </g>
-                <g>
+                <g v-if="seriesVisible.temp">
                   <path
                     v-for="point in chartPoints('temp')"
                     :key="point.key"
@@ -575,44 +577,67 @@
     </div>
 
     <div v-if="showMonitorDialog" class="live-modal-backdrop">
-      <div class="live-modal">
+      <div class="live-modal monitor-modal" tabindex="0" @keydown.esc.prevent="showMonitorDialog = false" @keydown.enter.prevent="saveMonitorRows">
         <header>
           <strong>{{ monitorForm.editingId ? '编辑监护项目结果' : '新建监护项目结果' }}</strong>
           <button @click="showMonitorDialog = false">×</button>
         </header>
         <div class="live-modal-body monitor-form">
           <h4>{{ monitorForm.batch ? '批量监护项目结果' : '监护项目结果' }}</h4>
-          <label>执行日期<input v-model="monitorForm.date" type="date" /></label>
-          <label>
-            执行时间
-            <span class="time-stepper">
-              <button @click="shiftObjectTime(monitorForm, 'time', -LIVE_TIME_STEP_MINUTES)">-</button>
-              <input v-model="monitorForm.time" type="time" step="60" @keydown.up.prevent="shiftObjectTime(monitorForm, 'time', LIVE_TIME_STEP_MINUTES)" @keydown.down.prevent="shiftObjectTime(monitorForm, 'time', -LIVE_TIME_STEP_MINUTES)" />
-              <button @click="shiftObjectTime(monitorForm, 'time', LIVE_TIME_STEP_MINUTES)">+</button>
-            </span>
-          </label>
-          <label v-if="monitorForm.batch">
-            结束时间
-            <span class="time-stepper">
-              <button @click="shiftObjectTime(monitorForm, 'endTime', -LIVE_TIME_STEP_MINUTES)">-</button>
-              <input v-model="monitorForm.endTime" type="time" step="60" @keydown.up.prevent="shiftObjectTime(monitorForm, 'endTime', LIVE_TIME_STEP_MINUTES)" @keydown.down.prevent="shiftObjectTime(monitorForm, 'endTime', -LIVE_TIME_STEP_MINUTES)" />
-              <button @click="shiftObjectTime(monitorForm, 'endTime', LIVE_TIME_STEP_MINUTES)">+</button>
-            </span>
-          </label>
-          <label v-if="monitorForm.batch">记录间隔<input v-model.number="monitorForm.interval" type="number" min="1" /> 分钟</label>
-          <h4>新建监护项目结果</h4>
-          <div class="monitor-fetch-bar">
-            <button class="btn small" type="button" :disabled="readOnly" @click="fetchMonitorMock">自动获取监护数据</button>
-            <span class="hint">未获取时默认为空；双击已有记录可带出默认值进入编辑</span>
+          <div class="monitor-form-time">
+            <label>
+              日期
+              <input v-model="monitorForm.date" type="date" />
+            </label>
+            <label>
+              时间
+              <span class="time-stepper">
+                <button @click="shiftObjectTime(monitorForm, 'time', -LIVE_TIME_STEP_MINUTES)">-</button>
+                <input v-model="monitorForm.time" type="time" step="60" @keydown.up.prevent="shiftObjectTime(monitorForm, 'time', LIVE_TIME_STEP_MINUTES)" @keydown.down.prevent="shiftObjectTime(monitorForm, 'time', -LIVE_TIME_STEP_MINUTES)" />
+                <button @click="shiftObjectTime(monitorForm, 'time', LIVE_TIME_STEP_MINUTES)">+</button>
+              </span>
+            </label>
+            <label v-if="monitorForm.batch">
+              结束
+              <span class="time-stepper">
+                <button @click="shiftObjectTime(monitorForm, 'endTime', -LIVE_TIME_STEP_MINUTES)">-</button>
+                <input v-model="monitorForm.endTime" type="time" step="60" @keydown.up.prevent="shiftObjectTime(monitorForm, 'endTime', LIVE_TIME_STEP_MINUTES)" @keydown.down.prevent="shiftObjectTime(monitorForm, 'endTime', -LIVE_TIME_STEP_MINUTES)" />
+                <button @click="shiftObjectTime(monitorForm, 'endTime', LIVE_TIME_STEP_MINUTES)">+</button>
+              </span>
+            </label>
+            <label v-if="monitorForm.batch">
+              间隔
+              <span class="monitor-interval">
+                <input v-model.number="monitorForm.interval" type="number" min="1" />
+                <span>分钟</span>
+              </span>
+            </label>
           </div>
-          <label v-for="item in selectedMonitorItems" :key="item">
-            {{ item }}
-            <select v-if="monitorMeta(item).options" v-model="monitorValues[item]">
-              <option v-for="option in monitorMeta(item).options" :key="option" :value="option">{{ option === '' ? '（清空）' : option }}</option>
-            </select>
-            <input v-else v-model="monitorValues[item]" :type="monitorMeta(item).type || 'text'" />
-            <span>{{ monitorMeta(item).unit }}</span>
-          </label>
+          <h4>{{ monitorForm.batch ? '批量项目明细' : '项目明细' }}</h4>
+          <div class="monitor-fetch-bar">
+            <button class="btn small" type="button" :disabled="readOnly" @click="fetchMonitorMock">自动获取</button>
+            <details class="monitor-hint">
+              <summary>提示</summary>
+              <div class="hint">未获取时默认为空；双击已有记录可带出默认值进入编辑</div>
+            </details>
+          </div>
+          <div class="monitor-item-grid">
+            <div v-for="item in selectedMonitorItems" :key="item" class="monitor-item">
+              <span class="monitor-item-name">{{ item }}</span>
+              <select v-if="monitorMeta(item).options" v-model="monitorValues[item]" :disabled="readOnly">
+                <option v-for="option in monitorMeta(item).options" :key="option" :value="option">{{ option === '' ? '（清空）' : option }}</option>
+              </select>
+              <input
+                v-else
+                :value="monitorValues[item]"
+                :type="monitorMeta(item).type || 'text'"
+                v-bind="monitorInputAttrs(item)"
+                :disabled="readOnly"
+                @input="updateMonitorValue(item, $event.target.value)"
+              />
+              <span class="monitor-item-unit">{{ monitorMeta(item).unit }}</span>
+            </div>
+          </div>
           <p v-if="monitorFormError" class="form-error">{{ monitorFormError }}</p>
         </div>
         <footer>
@@ -823,6 +848,7 @@ const showObserveSetting = ref(false);
 const showDataModal = ref(false);
 const activeDataList = ref('vitals');
 const selectedMonitorItems = ref(['SpO2', 'ECG', '收缩压', '舒张压', '脉搏', '体温', '机械通气']);
+const seriesVisible = reactive({ sbp: true, dbp: true, hr: true, spo2: true, temp: true });
 const monitorValues = reactive({});
 const lineForm = reactive({ kind: '用药', id: '', name: '', customName: '', time: '', endTime: '', amount: '', unit: '', route: '', bagNo: '', bloodType: '', volumeUnit: '', doubleCheck: false, anesthesiaConfirm: false, circulatingConfirm: false, reaction: '无', continuous: false });
 const lineFormError = ref('');
@@ -1197,8 +1223,34 @@ function monitorMeta(item) {
   return monitorDefaults[item] || { key: item, default: '', unit: '' };
 }
 
+function monitorInputAttrs(item) {
+  const meta = monitorMeta(item);
+  if (meta.type !== 'number') return {};
+  if (item === 'SpO2') return { min: 0, max: 100, step: 1 };
+  if (item === '收缩压' || item === '舒张压') return { min: 0, max: 300, step: 1 };
+  if (item === '脉搏') return { min: 0, max: 250, step: 1 };
+  if (item === 'RESP') return { min: 0, max: 60, step: 1 };
+  if (item === '体温' || item === 'T') return { min: 30, max: 45, step: 0.1 };
+  if (item === 'ETCO2') return { min: 0, max: 80, step: 1 };
+  if (item === 'BIS') return { min: 0, max: 100, step: 1 };
+  if (item === '气道压力') return { min: 0, max: 80, step: 1 };
+  if (item === 'TV') return { min: 0, max: 2000, step: 10 };
+  return { step: meta.default % 1 ? 0.1 : 1 };
+}
+
+function updateMonitorValue(item, rawValue) {
+  const meta = monitorMeta(item);
+  if (meta.type === 'number') monitorValues[item] = rawValue === '' ? '' : Number(rawValue);
+  else monitorValues[item] = rawValue;
+}
+
 function ensureMonitorDefault(item) {
   if (monitorValues[item] === undefined) monitorValues[item] = monitorMeta(item).default;
+}
+
+function toggleSeries(key) {
+  if (!(key in seriesVisible)) return;
+  seriesVisible[key] = !seriesVisible[key];
 }
 
 function isContinuousDrug(row) {
