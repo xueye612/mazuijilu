@@ -571,10 +571,10 @@ textarea:focus {
   top: 2px;
   transform: translateX(-50%);
   z-index: 4;
-  padding: 0 5px;
+  padding: 0 4px;
   background: #fff;
-  box-shadow: 0 0 0 2px #fff;
-  font-size: 12px;
+  box-shadow: 0 0 0 1px #fff;
+  font-size: 11px;
   line-height: 1.1;
   color: #111;
   white-space: nowrap;
@@ -588,11 +588,11 @@ textarea:focus {
   width: 0;
   height: auto;
   background: transparent;
-  border-left: 1px solid #111;
+  border-left: 1px solid #cbd5e1;
 }
 
 .minor-tick.major {
-  border-left-width: 1px;
+  border-left-color: #111;
 }
 
 .live-band {

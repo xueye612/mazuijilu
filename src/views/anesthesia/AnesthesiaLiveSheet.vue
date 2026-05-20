@@ -72,7 +72,7 @@
             <div class="sheet-left-head">项目</div>
             <div class="sheet-time-area">
               <span
-                v-for="tick in timeScale.majorTicks"
+                v-for="tick in rulerMajorTicks"
                 :key="tick.time"
                 class="major-tick-label"
                 :style="{ left: tick.percent + '%' }"
@@ -981,6 +981,7 @@ const sheetEnd = computed(() => {
   return calculateLiveSheetEnd(sheetStart.value, candidates, 210, 30);
 });
 const timeScale = computed(() => buildLiveTimeScale(sheetStart.value, sheetEnd.value, 5, 30));
+const rulerMajorTicks = computed(() => timeScale.value.majorTicks.filter((tick) => String(tick.time || '').endsWith(':00')));
 const sheetGridStyle = computed(() => ({
   '--minor-columns': Math.max(1, timeScale.value.totalMinutes / timeScale.value.minorInterval),
   '--major-columns': Math.max(1, timeScale.value.totalMinutes / timeScale.value.majorInterval),
