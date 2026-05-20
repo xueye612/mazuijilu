@@ -625,6 +625,7 @@ textarea:focus {
 .status-labels div {
   display: flex;
   align-items: center;
+  box-sizing: border-box;
   height: 22px;
   padding: 0 6px;
   border-bottom: 1px solid #9ca3af;

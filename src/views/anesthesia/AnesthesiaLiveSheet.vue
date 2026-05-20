@@ -93,7 +93,7 @@
             <div class="band-side vertical">麻醉用药</div>
             <div class="band-labels">
               <div class="screen-band-label">麻醉平面</div>
-              <div v-for="row in medicationRows" :key="row.id" class="screen-band-label">{{ row.name }}</div>
+              <div v-for="row in medicationGroups" :key="row.key" class="screen-band-label">{{ row.name }}</div>
               <div v-for="row in printMedicationLabelRows" :key="row.key" class="print-band-label">{{ row.label }}</div>
             </div>
             <div class="band-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'drugGrid')">
@@ -106,7 +106,7 @@
               </div>
               <span
                 v-for="row in singleMedicationRows"
-                :key="row.id"
+                :key="row.key"
                 class="drug-marker"
                 :style="markerStyle(row.time, row.index, row.rowCount, row.printIndex)"
                 @contextmenu.prevent.stop="openLiveMenu($event, 'medication', row.source)"
@@ -115,7 +115,7 @@
               </span>
               <div
                 v-for="row in continuousMedicationRows"
-                :key="row.id"
+                :key="row.key"
                 class="fluid-line drug-line draggable-segment"
                 :style="segmentStyle(row)"
                 @pointerdown.stop.prevent="startSegmentDrag($event, row, 'move')"
@@ -1044,26 +1044,51 @@ const VITAL_FIELD_SPECS = {
   spo2:{ label: 'SpO₂', unit: '%', toY: (v) => 300 - ((v - 40) / 60) * 300, fromY: (y) => Math.round(40 + ((300 - y) / 300) * 60), min: 50, max: 100, decimals: 0 },
   temp:{ label: '体温', unit: '°C', toY: (v) => 300 - ((v - 34) / 6) * 300, fromY: (y) => Math.round((34 + ((300 - y) / 300) * 6) * 10) / 10, min: 33, max: 41, decimals: 1 },
 };
+const medicationGroups = computed(() => {
+  const groups = new Map();
+  const order = [];
+  (props.record.medications || []).forEach((med) => {
+    if (!med) return;
+    const name = String(med.name || '').trim() || '未命名';
+    if (!groups.has(name)) {
+      groups.set(name, []);
+      order.push(name);
+    }
+    groups.get(name).push(med);
+  });
+  return order.slice(0, 8).map((name, index) => {
+    const items = groups.get(name) || [];
+    const units = [...new Set(items.map((item) => item?.unit).filter(Boolean))];
+    return { key: `med-group-${index}-${name}`, name, items, units };
+  });
+});
+
 const medicationRows = computed(() =>
-  (props.record.medications || []).slice(0, 8).map((med, index) => ({
-    ...med,
-    source: med,
-    index,
-    printIndex: index + 1,
-    rowCount: 9,
-    endTime: med.endTime || addMinutes(med.time, isContinuousDrug(med) ? 45 : 0),
-    label: `${med.dose || ''}${med.unit ? ` ${med.unit}` : ''}`,
-  })),
+  medicationGroups.value.flatMap((group, index) =>
+    group.items.map((med) => ({
+      ...med,
+      source: med,
+      index,
+      printIndex: index + 1,
+      rowCount: 9,
+      endTime: med.endTime || addMinutes(med.time, isContinuousDrug(med) ? 45 : 0),
+      label: `${med.dose || ''}${med.unit ? ` ${med.unit}` : ''}`,
+      key: `${med.id || med.time || ''}-${index}-${med.name || ''}`,
+    })),
+  ),
 );
-const continuousMedicationRows = computed(() => medicationRows.value.filter((row) => isContinuousDrug(row)));
-const singleMedicationRows = computed(() => medicationRows.value.filter((row) => !isContinuousDrug(row)));
+
+const continuousMedicationRows = computed(() => medicationRows.value.filter((row) => isContinuousDrug(row.source || row)));
+const singleMedicationRows = computed(() => medicationRows.value.filter((row) => !isContinuousDrug(row.source || row)));
+
 const printMedicationLabelRows = computed(() => [
   { key: 'plane', label: '麻醉平面' },
   ...Array.from({ length: 8 }, (_, index) => {
-    const row = medicationRows.value[index];
+    const group = medicationGroups.value[index];
+    const unitLabel = group?.units?.length ? `（${group.units.join('/')}）` : '';
     return {
       key: `med-${index + 1}`,
-      label: `${index + 1}${row?.name ? ` ${row.name}` : ''}${row?.unit ? `（${row.unit}）` : ''}`,
+      label: `${index + 1}${group?.name ? ` ${group.name}` : ''}${unitLabel}`,
     };
   }),
 ]);
