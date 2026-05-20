@@ -19,6 +19,8 @@
   --print-sheet-left-width: 35mm;
   --print-band-side-width: 7mm;
   --print-chart-legend-width: 19mm;
+  --label-border-major: 1px;
+  --label-border-minor: 1px;
 }
 
 * {
@@ -2780,6 +2782,8 @@ textarea:focus {
 
   :root {
     --print-row-height: 5.8mm;
+    --label-border-major: 1px;
+    --label-border-minor: 0.6px;
   }
 
   .screen-only {
@@ -3308,6 +3312,8 @@ textarea:focus {
   .print-large-notes .note-cell {
     padding: 1.5mm;
     line-height: 1.35;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
 
   .print-summary-grid {

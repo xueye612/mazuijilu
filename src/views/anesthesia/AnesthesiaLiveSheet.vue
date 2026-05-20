@@ -1225,7 +1225,31 @@ const printFasting = computed(() => (props.patient.fasting || '').includes('禁�
 const printPosition = computed(() => props.record.anesthesia.position || props.patient.surgeryPosition || '平卧位');
 const printIdentityNo = computed(() => props.patient.identityNo || props.patient.idCard || '610528199201168669');
 const printFirstOutput = computed(() => (props.record.outputs || [])[0] || { urine: 0, bloodLoss: 0, drainage: 0, other: 0 });
-const printMedicationSummary = computed(() => compactText((props.record.medications || []).slice(0, 6).map((med, index) => `${index + 1}. ${med.time || ''} ${med.name || ''} ${med.dose || ''}${med.unit || ''}`).join('；')));
+const printMedicationSummary = computed(() => {
+  const groups = new Map();
+  (props.record.medications || []).forEach((med) => {
+    if (!med) return;
+    const name = String(med.name || '').trim();
+    if (!name) return;
+    if (!groups.has(name)) groups.set(name, []);
+    groups.get(name).push(med);
+  });
+
+  const lines = [...groups.entries()].slice(0, 10).map(([name, items]) => {
+    const sorted = [...items].sort((a, b) => {
+      const ta = clockToMinutes(a?.time);
+      const tb = clockToMinutes(b?.time);
+      if (ta === null && tb === null) return 0;
+      if (ta === null) return 1;
+      if (tb === null) return -1;
+      return ta - tb;
+    });
+    const parts = sorted.map((item) => `${item.time || ''} ${item.dose || ''}${item.unit || ''}`.trim()).filter(Boolean);
+    return `${name}：${parts.join('；')}`.trim();
+  }).filter(Boolean);
+
+  return lines.length ? lines.join('\n') : '无';
+});
 const printSpecialMedSummary = computed(() => compactText(highAlertMeds.value.map((med) => `${med.name || ''}: ${med.dose || ''}${med.unit || ''}`).join('；')) || '无特殊说明');
 const printKeyOperationSummary = computed(() => compactText(keyEvents.value.map((event, index) => `${index + 1}. ${event.content || event.type || ''}`).join('；')) || '无特殊关键操作');
 const printAnalgesiaText = computed(() => compactText(props.record.recovery.conclusion || props.record.recovery.handoverNote || props.record.anesthesia.recoveryNote || '镇痛方式：PCEA'));
@@ -1309,7 +1333,10 @@ function labelRowStyle(index, rowCount) {
   if (index >= total - 1) return { borderBottomWidth: '0' };
   const boundary = index + 1;
   const major = boundary % 4 === 0 || boundary === total - 1;
-  return { borderBottomColor: major ? '#111' : '#9ca3af' };
+  return {
+    borderBottomColor: major ? '#111' : '#9ca3af',
+    borderBottomWidth: major ? 'var(--label-border-major)' : 'var(--label-border-minor)',
+  };
 }
 
 function isContinuousDrug(row) {
