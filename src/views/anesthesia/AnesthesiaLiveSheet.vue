@@ -92,10 +92,10 @@
           <div class="live-band band-medication" :style="{ '--print-rows': 9 }">
             <div class="band-side vertical">麻醉用药</div>
             <div class="band-labels">
-              <div v-for="(row, index) in medicationLabelRows" :key="row.key" class="screen-band-label" :style="labelRowStyle(index, 9)">
+              <div v-for="(row, index) in medicationLabelRows" :key="row.key" class="label-row screen-band-label" :style="labelRowStyle(index, 9)">
                 {{ row.name }}
               </div>
-              <div v-for="row in printMedicationLabelRows" :key="row.key" class="print-band-label">{{ row.label }}</div>
+              <div v-for="(row, index) in printMedicationLabelRows" :key="row.key" class="label-row print-band-label" :style="labelRowStyle(index, 9)">{{ row.label }}</div>
             </div>
             <div class="band-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'drugGrid')">
               <div class="horizontal-lines"></div>
@@ -132,8 +132,8 @@
           <div class="live-band band-infusion" :style="infusionBandStyle">
             <div class="band-side vertical">输液</div>
             <div class="band-labels">
-              <div v-for="row in infusionRows" :key="row.id" class="screen-band-label">{{ row.name }}</div>
-              <div v-for="row in printInfusionLabelRows" :key="row.key" class="print-band-label">{{ row.label }}</div>
+              <div v-for="row in infusionRows" :key="row.id" class="label-row screen-band-label">{{ row.name }}</div>
+              <div v-for="(row, index) in printInfusionLabelRows" :key="row.key" class="label-row print-band-label" :style="labelRowStyle(index, printInfusionRowCount)">{{ row.label }}</div>
             </div>
             <div class="band-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'infusionGrid')">
               <div class="horizontal-lines"></div>
@@ -162,8 +162,8 @@
           <div class="live-band band-transfusion" :style="transfusionBandStyle">
             <div class="band-side vertical">输血</div>
             <div class="band-labels">
-              <div v-for="row in transfusionRows" :key="row.id" class="screen-band-label">{{ row.name }}</div>
-              <div v-for="row in printTransfusionLabelRows" :key="row.key" class="print-band-label">{{ row.label }}</div>
+              <div v-for="row in transfusionRows" :key="row.id" class="label-row screen-band-label">{{ row.name }}</div>
+              <div v-for="(row, index) in printTransfusionLabelRows" :key="row.key" class="label-row print-band-label" :style="labelRowStyle(index, printTransfusionRowCount)">{{ row.label }}</div>
             </div>
             <div class="band-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'transfusionGrid')">
               <div class="horizontal-lines"></div>
@@ -188,8 +188,8 @@
           <div class="live-band band-monitor" :style="monitorBandStyle">
             <div class="band-side vertical">监测</div>
             <div class="band-labels">
-              <div v-for="item in selectedMonitorItems" :key="item" class="screen-band-label">{{ item }}</div>
-              <div v-for="row in printMonitorLabelRows" :key="row.key" class="print-band-label">{{ row.label }}</div>
+              <div v-for="item in selectedMonitorItems" :key="item" class="label-row screen-band-label">{{ item }}</div>
+              <div v-for="(row, index) in printMonitorLabelRows" :key="row.key" class="label-row print-band-label" :style="labelRowStyle(index, printMonitorRowCount)">{{ row.label }}</div>
             </div>
             <div class="band-grid monitor-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'monitor')">
               <div class="print-grid-lines" aria-hidden="true">
@@ -215,7 +215,7 @@
 
           <div class="print-surgery-status-row" :style="{ '--print-rows': 1 }" aria-hidden="true">
             <div class="band-labels">
-              <div>手术状态</div>
+              <div class="label-row">手术状态</div>
             </div>
             <div class="band-grid status-grid">
               <div class="print-grid-lines" aria-hidden="true">
@@ -325,11 +325,11 @@
           <div class="live-band band-status band-output" :style="{ '--print-rows': 5 }">
             <div class="band-side">手术状态</div>
             <div class="status-labels">
-              <div>尿量（ml）</div>
-              <div>出血量（ml）</div>
-              <div>引流量（ml）</div>
-              <div>其他（ml）</div>
-              <div>手术关键操作</div>
+              <div class="label-row">尿量（ml）</div>
+              <div class="label-row">出血量（ml）</div>
+              <div class="label-row">引流量（ml）</div>
+              <div class="label-row">其他（ml）</div>
+              <div class="label-row">手术关键操作</div>
             </div>
             <div class="band-grid status-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'balance')">
               <div class="print-grid-lines" aria-hidden="true">
@@ -1109,7 +1109,10 @@ const printTransfusionLabelRows = computed(() =>
 );
 const printMonitorRowCount = computed(() => Math.max(6, selectedMonitorItems.value.length || 6));
 const printMonitorLabelRows = computed(() =>
-  Array.from({ length: printMonitorRowCount.value }, (_, index) => ({ key: `mon-${index}`, label: index === 0 ? 'SpO2' : '' })),
+  Array.from({ length: printMonitorRowCount.value }, (_, index) => ({
+    key: `mon-${index}`,
+    label: selectedMonitorItems.value[index] || '',
+  })),
 );
 const infusionRows = computed(() => {
   const rows = (props.record.infusions || []).slice(0, 4);

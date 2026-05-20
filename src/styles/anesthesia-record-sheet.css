@@ -621,8 +621,8 @@ textarea:focus {
   background: #fbfdff;
 }
 
-.band-labels div,
-.status-labels div {
+.band-labels .label-row,
+.status-labels .label-row {
   display: flex;
   align-items: center;
   box-sizing: border-box;
@@ -2770,6 +2770,10 @@ textarea:focus {
     margin: 5mm;
   }
 
+  :root {
+    --print-row-height: 5.8mm;
+  }
+
   body {
     background: #fff;
   }
@@ -2987,18 +2991,17 @@ textarea:focus {
 
   .band-labels,
   .status-labels {
-    display: grid;
-    grid-template-rows: repeat(var(--print-rows, 1), minmax(0, 1fr));
+    display: block;
     background: #fff;
     border-right: 1px solid #111;
   }
 
-  .band-labels div,
-  .status-labels div {
+  .band-labels .label-row,
+  .status-labels .label-row {
     min-height: 0;
-    height: auto;
+    height: var(--print-row-height);
     padding: 0 1.5mm;
-    border-bottom: 1px solid #aaa;
+    border-bottom: 0.6px solid #9d9d9d;
     font-size: 9pt;
   }
 
@@ -3021,9 +3024,6 @@ textarea:focus {
     display: none;
   }
 
-  .band-medication .print-grid-lines,
-  .band-infusion .print-grid-lines,
-  .band-transfusion .print-grid-lines,
   .band-output .print-grid-lines span:not(.major),
   .print-surgery-status-row .print-grid-lines span:not(.major) {
     display: none;
@@ -3085,20 +3085,11 @@ textarea:focus {
     display: none !important;
   }
 
-  .band-medication {
-    min-height: 43mm !important;
-  }
-
-  .band-infusion {
-    min-height: 20mm !important;
-  }
-
-  .band-transfusion {
-    min-height: 19mm !important;
-  }
-
+  .band-medication,
+  .band-infusion,
+  .band-transfusion,
   .band-monitor {
-    min-height: 24mm;
+    min-height: auto !important;
   }
 
   .drug-marker,
