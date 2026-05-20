@@ -92,10 +92,14 @@
           <div class="live-band band-medication" :style="{ '--print-rows': 9 }">
             <div class="band-side vertical">麻醉用药</div>
             <div class="band-labels">
-              <div v-for="(row, index) in medicationLabelRows" :key="row.key" class="label-row screen-band-label" :style="labelRowStyle(index, 9)">
-                {{ row.name }}
+              <div class="screen-only">
+                <div v-for="(row, index) in medicationLabelRows" :key="row.key" class="label-row screen-band-label" :style="labelRowStyle(index, 9)">
+                  {{ row.name }}
+                </div>
               </div>
-              <div v-for="(row, index) in printMedicationLabelRows" :key="row.key" class="label-row print-band-label" :style="labelRowStyle(index, 9)">{{ row.label }}</div>
+              <div class="print-only">
+                <div v-for="(row, index) in printMedicationLabelRows" :key="row.key" class="label-row print-band-label" :style="labelRowStyle(index, 9)">{{ row.label }}</div>
+              </div>
             </div>
             <div class="band-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'drugGrid')">
               <div class="horizontal-lines"></div>
@@ -132,8 +136,12 @@
           <div class="live-band band-infusion" :style="infusionBandStyle">
             <div class="band-side vertical">输液</div>
             <div class="band-labels">
-              <div v-for="row in infusionRows" :key="row.id" class="label-row screen-band-label">{{ row.name }}</div>
-              <div v-for="(row, index) in printInfusionLabelRows" :key="row.key" class="label-row print-band-label" :style="labelRowStyle(index, printInfusionRowCount)">{{ row.label }}</div>
+              <div class="screen-only">
+                <div v-for="row in infusionRows" :key="row.id" class="label-row screen-band-label">{{ row.name }}</div>
+              </div>
+              <div class="print-only">
+                <div v-for="(row, index) in printInfusionLabelRows" :key="row.key" class="label-row print-band-label" :style="labelRowStyle(index, printInfusionRowCount)">{{ row.label }}</div>
+              </div>
             </div>
             <div class="band-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'infusionGrid')">
               <div class="horizontal-lines"></div>
@@ -162,8 +170,12 @@
           <div class="live-band band-transfusion" :style="transfusionBandStyle">
             <div class="band-side vertical">输血</div>
             <div class="band-labels">
-              <div v-for="row in transfusionRows" :key="row.id" class="label-row screen-band-label">{{ row.name }}</div>
-              <div v-for="(row, index) in printTransfusionLabelRows" :key="row.key" class="label-row print-band-label" :style="labelRowStyle(index, printTransfusionRowCount)">{{ row.label }}</div>
+              <div class="screen-only">
+                <div v-for="row in transfusionRows" :key="row.id" class="label-row screen-band-label">{{ row.name }}</div>
+              </div>
+              <div class="print-only">
+                <div v-for="(row, index) in printTransfusionLabelRows" :key="row.key" class="label-row print-band-label" :style="labelRowStyle(index, printTransfusionRowCount)">{{ row.label }}</div>
+              </div>
             </div>
             <div class="band-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'transfusionGrid')">
               <div class="horizontal-lines"></div>
@@ -188,8 +200,12 @@
           <div class="live-band band-monitor" :style="monitorBandStyle">
             <div class="band-side vertical">监测</div>
             <div class="band-labels">
-              <div v-for="item in selectedMonitorItems" :key="item" class="label-row screen-band-label">{{ item }}</div>
-              <div v-for="(row, index) in printMonitorLabelRows" :key="row.key" class="label-row print-band-label" :style="labelRowStyle(index, printMonitorRowCount)">{{ row.label }}</div>
+              <div class="screen-only">
+                <div v-for="item in selectedMonitorItems" :key="item" class="label-row screen-band-label">{{ item }}</div>
+              </div>
+              <div class="print-only">
+                <div v-for="(row, index) in printMonitorLabelRows" :key="row.key" class="label-row print-band-label" :style="labelRowStyle(index, printMonitorRowCount)">{{ row.label }}</div>
+              </div>
             </div>
             <div class="band-grid monitor-grid" @contextmenu.prevent.stop="openLiveMenu($event, 'monitor')">
               <div class="print-grid-lines" aria-hidden="true">
@@ -1095,7 +1111,7 @@ const printMedicationLabelRows = computed(() => [
     const unitLabel = group?.units?.length ? `（${group.units.join('/')}）` : '';
     return {
       key: `med-${index + 1}`,
-      label: `${index + 1}${group?.name ? ` ${group.name}` : ''}${unitLabel}`,
+      label: group?.name ? `${group.name}${unitLabel}` : '',
     };
   }),
 ]);

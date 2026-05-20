@@ -503,6 +503,14 @@ textarea:focus {
   display: none;
 }
 
+.print-only {
+  display: none;
+}
+
+.screen-only {
+  display: block;
+}
+
 .band-labels .print-band-label {
   display: none;
 }
@@ -2772,6 +2780,14 @@ textarea:focus {
 
   :root {
     --print-row-height: 5.8mm;
+  }
+
+  .screen-only {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
   }
 
   body {
